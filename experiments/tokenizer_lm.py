@@ -67,11 +67,22 @@ def run(tok, a, dev, kind="tonn", seed=0):
     opt = make_optimizer(model, a.lr, 0.1)
     rng = np.random.default_rng(seed)
     t0, bytes_seen, curve, recent = time.time(), 0.0, [], []
-    for step in range(a.steps):
+    total = a.steps
+    step = 0
+    while step < total:
+        if a.seconds and step == 50:                      # equal compute: fit the run to a time budget
+            if dev.type == "mps":
+                torch.mps.synchronize()
+            per = (time.time() - t_after_10) / 40
+            total = max(100, int(a.seconds / per))
+        if step == 10:
+            if dev.type == "mps":
+                torch.mps.synchronize()
+            t_after_10 = time.time()
         for g in opt.param_groups:
-            g["lr"] = lr_at(step, a.steps, a.lr, 200, 0.2)
+            g["lr"] = lr_at(step, total, a.lr, 200, 0.2)
         if searcher is not None:
-            searcher.maybe_round(model, opt, step, a.steps, sel, a.seq)
+            searcher.maybe_round(model, opt, step, total, sel, a.seq)
         x, y, _ = train.batch(a.batch, a.seq, rng)
         loss = model(x.to(dev), MemoryContext(), y.to(dev))[1]
         opt.zero_grad(set_to_none=True)
@@ -85,9 +96,10 @@ def run(tok, a, dev, kind="tonn", seed=0):
             recent = []
         if dev.type == "mps" and step % 200 == 0:
             torch.mps.empty_cache()
+        step += 1
     rec = dict(model=kind, tag=a.tag, cfg=a.cfg if kind != "llama" else "{}", lr=a.lr, seed=seed, tokenizer=tok,
                vocab=int(train.meta["vocab_size"]), params_M=round(count_params(model) / 1e6, 2),
-               steps=a.steps, tokens_seen=a.steps * a.batch * a.seq, bytes_seen=int(bytes_seen),
+               steps=total, seconds_budget=a.seconds, tokens_seen=total * a.batch * a.seq, bytes_seen=int(bytes_seen),
                secs=round(time.time() - t0, 1),
                bits_per_byte={v[4:]: bits_per_byte(model, s, a, dev) for v, s in vals.items()},
                architecture=model.architecture() if kind != "llama" else None, train_loss_every_250=curve)
@@ -101,6 +113,7 @@ def main():
     ap.add_argument("--toks", default="bpe32k,bpe48k,bpe64k")
     ap.add_argument("--mix", default="0.5,0.3,0.2", help="weights of English, Japanese and code in training")
     ap.add_argument("--steps", type=int, default=3000)
+    ap.add_argument("--seconds", type=float, default=0, help="equal compute: set the step count to fill this many seconds")
     ap.add_argument("--batch", type=int, default=32)
     ap.add_argument("--seq", type=int, default=512)
     ap.add_argument("--lr", type=float, default=2e-3)

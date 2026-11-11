@@ -232,7 +232,24 @@ What to try next (in the to-do list):
 - bigger chunks and real tokens instead of bytes;
 - a bigger model.
 
-Until retrieval shows a gain on real text, the plan should treat it as an option that costs compute.
+**With a Wikipedia library** (`results/rag_wiki/`):
+- The library is 300,000 chunks of 64 tokens from 25,795 English Wikipedia articles (LLM-jp Corpus v4).
+- The text is English FineWeb-Edu, with the 32k tokenizer.
+- The model is the 13M hybrid, trained for 3,000 steps.
+
+Bits per token:
+
+| Model | Library attached | Library removed | Training time |
+|---|---|---|---|
+| Hybrid trained with retrieval | 5.969 | 5.968 | 1,036 s |
+| Hybrid trained without | | 5.970 | 571 s |
+
+Still no gain on general text, at 1.8 times the training time. At this size, retrieval doesn't lower the loss on
+ordinary text, even when the library is relevant. Published gains on ordinary text came with very large datastores;
+the clear wins are on knowledge questions.
+
+The next test should be a knowledge task: questions whose answers are in the library but not in the model's
+context. Until retrieval shows a gain there, the plan should treat it as an option that costs compute.
 
 ## 7. TONN vs Llama on real tokens (`experiments/tokenizer_lm.py --models ...`)
 

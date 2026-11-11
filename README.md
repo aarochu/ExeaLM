@@ -132,7 +132,7 @@ There are two candidate 100B-token mixes: DATA.md's (English-heavier) and mix pr
   - the retrieval index is refreshed as the model's own encoder learns;
   - the best data is saved for the final decay phase.
 
-  Compute: about 6 × 10¹⁹ FLOPs. That is about 56 MI300X GPU-hours at transformer speed, and about 200 at TONN's current speed with retrieval, so about a day on 8 GPUs. [docs/training.md](docs/training.md)
+  Compute: about 6 × 10¹⁹ FLOPs. That is about 56 MI300X GPU-hours at transformer speed; the default ExeaLM trains at that speed, and retrieval adds about half again (about 85 GPU-hours), so well under a day on 8 GPUs. [docs/training.md](docs/training.md)
 - **Post-training,** in this order:
   1. supervised fine-tuning on conversations ([`sft.py`](exealm/train/sft.py));
   2. preference tuning ([`dpo.py`](exealm/train/dpo.py));
@@ -150,7 +150,7 @@ Small-scale tests on a Mac Studio, all in [results/README.md](results/README.md)
   The first design never learned; the report says what broke and why.
 - **On real text the board helps a little:** 0.006 bits per byte at 5M parameters, against a matched control.
 - **Tokenizer: 32k.** It wins or ties 49k and 64k on English, Japanese and code at a fixed token budget.
-- **Speed:** the hybrid 0.1B model trains at 1.13x the cost per token of a same-size Llama, 1.66x with retrieval on.
+- **Speed:** the default 0.1B model (2:1 hybrid) trains at the same speed as a same-size Llama (1.01x per token), 1.49x with retrieval on.
 - **Pure TONN lost to Llama on real tokens; the hybrid wins.** Pure TONN trailed a same-size Llama, mostly on code. A
   hybrid (TONN layers among attention layers, convolution-heavy start) beats Llama on English, Japanese and code
   with both seeds: at equal size and steps (13M, 27M, 48M) and, with two attention layers per TONN layer, at equal

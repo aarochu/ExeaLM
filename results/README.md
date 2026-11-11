@@ -181,8 +181,19 @@ of 2,048 tokens. Median of 5 steps.
 | ExeaLM hybrid, retrieval on | 101.1M | 7,259 | 1.66 |
 | ExeaLM hybrid, retrieval on + swarms of 4 | 101.1M | 7,285 | 1.65 |
 
-Two things made the difference:
-- Half the layers are now standard attention.
+**The 2:1 default** (every third layer TONN; `results/speed_hybrid21/`):
+
+| Model | Parameters | Tokens per second | Relative cost per token |
+|---|---|---|---|
+| Llama baseline | 100.2M | 12,047 | 1.00 |
+| **ExeaLM 2:1 hybrid**, memory circuits idle | 101.1M | 11,967 | **1.01** |
+| ExeaLM 2:1 hybrid, retrieval on | 101.1M | 8,061 | 1.49 |
+| ExeaLM 2:1 hybrid, retrieval on + swarms of 4 | 101.1M | 8,053 | 1.50 |
+
+**The default 0.1B model trains at Llama's speed** (within 1%).
+
+What made the difference (for both hybrids):
+- Most layers are now standard attention.
 - The gated recurrences (GI, SM) use a parallel prefix scan: 5 and 3.3 times faster per circuit, measured with
   `experiments/profile_circuits.py`.
 

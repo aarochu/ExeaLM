@@ -205,25 +205,42 @@ from other documents. A test covers the case where the document being read domin
 
 **Setup.** The `small` preset (width 256, 6 layers, about 13M parameters with the 32k vocabulary) and a Llama-style
 transformer of the same size. Same data (50% English, 30% Japanese, 20% code, 32k tokenizer), same 3,000 steps of
-32 × 512 tokens. Bits per byte on held-out text (lower is better).
+32 × 512 tokens, two seeds each. Bits per byte on held-out text (lower is better).
 
-| Model | Seed | Parameters | English | Japanese wiki | Japanese web | Code | Seconds |
-|---|---|---|---|---|---|---|---|
-| TONN (default: 1 RG + 1 AG circuit per layer, idle here) | 0 | 13.31M | 1.491 | 1.578 | 1.433 | 1.964 | 829 |
-| TONN (default: 1 RG + 1 AG circuit per layer, idle here) | 1 | 13.31M | 1.475 | 1.559 | 1.421 | 1.906 | 806 |
-| Llama | 0 | 13.1M | 1.461 | 1.534 | 1.413 | 1.775 | 543 |
-| Llama | 1 | 13.1M | 1.473 | 1.545 | 1.426 | 1.803 | 532 |
+Variants:
+- `tonn`: the default, with one retrieval and one board circuit per layer, idle here;
+- `tonn_core`: no memory circuits, all 8 per layer model language;
+- `tonn_core_search`: the same, with the architecture search on.
 
-**What it shows.** On real tokens at this size, Llama beats default TONN on every kind of text. Averaged over two seeds:
-- 0.016 bits per byte on English;
-- 0.029 on Japanese Wikipedia;
-- 0.008 on Japanese web text;
-- 0.15 on code, where attention's exact copying matters most.
+`python experiments/leaderboard.py results/arch results/arch2 results/sweep` rebuilds this table:
 
-Llama also trains about 1.5 times faster. The byte-level advantage measured before the project
-(4.85M parameters, English only, README) does not carry over to this setting. Two things are unfair to TONN here:
-- 2 of its 8 circuits per layer are retrieval and board circuits, idle without a datastore or a swarm;
-- the architecture search was off.
+| Rank | Run | Model | Config | lr | Seed | English | Japanese wiki | Japanese web | Code | Mean | vs Llama |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | arch | llama |  | 0.002 | 0 | 1.461 | 1.534 | 1.413 | 1.775 | 1.546 | -0.008 |
+| 2 | arch | llama |  | 0.002 | 1 | 1.473 | 1.545 | 1.426 | 1.803 | 1.562 | +0.008 |
+| 3 | arch | tonn |  | 0.002 | 1 | 1.475 | 1.559 | 1.421 | 1.906 | 1.590 | +0.037 |
+| 4 | arch2 | tonn_core_search |  | 0.002 | 0 | 1.479 | 1.566 | 1.422 | 1.948 | 1.604 | +0.050 |
+| 5 | arch2 | tonn_core |  | 0.002 | 0 | 1.483 | 1.570 | 1.424 | 1.959 | 1.609 | +0.055 |
+| 6 | arch2 | tonn_core_search |  | 0.002 | 1 | 1.474 | 1.562 | 1.417 | 1.993 | 1.611 | +0.058 |
+| 7 | arch2 | tonn_core |  | 0.002 | 1 | 1.477 | 1.567 | 1.419 | 2.000 | 1.616 | +0.062 |
+| 8 | arch | tonn |  | 0.002 | 0 | 1.491 | 1.578 | 1.433 | 1.964 | 1.616 | +0.063 |
 
-The follow-up (PENDING) runs TONN without memory circuits, with and without the search.
+Llama baseline (lr 2e-3, 2 seeds): mean 1.554 bits per byte.
 
+**Averages over two seeds:**
+
+| Model | English | Japanese wiki | Japanese web | Code |
+|---|---|---|---|---|
+| Llama | **1.467** | **1.540** | 1.420 | **1.789** |
+| TONN core + search | 1.476 | 1.564 | **1.420** | 1.970 |
+| TONN core | 1.480 | 1.568 | 1.422 | 1.979 |
+| TONN default | 1.483 | 1.568 | 1.427 | 1.935 |
+
+**What it shows.**
+- On prose TONN is close: tied on Japanese web, 0.009 behind on English, 0.024 on Japanese Wikipedia. The deficit is
+  almost all code, about 0.18 bits per byte.
+- The idle memory circuits cost little, and the search gains 0.004-0.009.
+- Code rewards exact copying of names, which attention does well. Llama has full attention in every layer; a random
+  TONN layer has on average less than one 32-channel attention circuit.
+- The overnight sweep tests this: attention-heavy starting mixes, pinned attention circuits, 64-channel circuits,
+  hybrid layers, learning rates. Results land in `results/sweep/`.

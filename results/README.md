@@ -272,8 +272,30 @@ Still no gain on general text, at 1.8 times the training time. At this size, ret
 ordinary text, even when the library is relevant. Published gains on ordinary text came with very large datastores;
 the clear wins are on knowledge questions.
 
-The next test should be a knowledge task: questions whose answers are in the library but not in the model's
-context. Until retrieval shows a gain there, the plan should treat it as an option that costs compute.
+**A knowledge task** (`experiments/rag_wiki_split.py`, `results/rag_wiki_split/`):
+- Each Wikipedia article is split in half. The first half goes into the library; the model reads and predicts the
+  second half, which keeps mentioning names and facts from the first.
+- The model trains on 90% of the articles and is scored on the held-out 10% with a fresh library made of their first
+  halves, so it has to retrieve rather than memorize.
+- 13M hybrid, 3,000 steps.
+
+Bits per token on held-out articles:
+
+| Run | Library attached | Library removed | Search finds the right article (top 4) |
+|---|---|---|---|
+| No retrieval | | 5.282 | |
+| Retrieval, learned search | 5.285 | 5.285 | |
+| + neighbour loss for the search (REALM-style) | 5.298 | 5.298 | 12.5% |
+| **Oracle search** (always looks inside the right article) | **5.242** | 5.309 | (perfect by construction) |
+
+- **The search is the bottleneck.** With a perfect article-level search, retrieval helps: 0.040 bits per token better
+  than the no-retrieval model at step 3,000, and 0.145 better than reading without the library at step 1,000.
+- The learned search finds the right article only about 12% of the time even with the neighbour loss, and then
+  retrieval gives nothing.
+- The read works; the model's own search does not yet.
+
+Next: larger retrieval keys (128 numbers instead of one circuit's 32, `rag_key_dim`), with and without a strong
+neighbour loss.
 
 ## 7. TONN vs Llama on real tokens (`experiments/tokenizer_lm.py --models ...`)
 

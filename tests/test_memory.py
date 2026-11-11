@@ -111,3 +111,13 @@ def test_datastore_returns_k_results_even_when_the_own_document_dominates():
     ds.keys = keys
     idx, ok = ds.search(keys[:5], 4, exclude=torch.zeros(5, dtype=torch.long))
     assert ok.all() and (ds.doc_ids[idx] != 0).all()
+
+
+def test_larger_retrieval_keys_work_and_stay_causal():
+    cfg, m, x, mem = setup(rag_key_dim=24)
+    assert m.encoder.key.out_features == 24 and mem.datastore.keys.shape[1] == 24
+    x2 = x.clone()
+    x2[0, 21] = (x2[0, 21] + 1) % cfg.vocab_size
+    with torch.no_grad():
+        a, b = m(x, mem)[0], m(x2, mem)[0]
+    assert torch.allclose(a[:, :21], b[:, :21], atol=1e-5)

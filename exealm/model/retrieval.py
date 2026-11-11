@@ -43,7 +43,7 @@ class ChunkEncoder(nn.Module):
         self.mix_out = nn.Linear(e, e, bias=False)
         self.mlp = MLP(e, 2 * e)
         self.norm = RMSNorm(e)
-        self.key = nn.Linear(e, cfg.h, bias=False)
+        self.key = nn.Linear(e, cfg.rag_key_dim or cfg.h, bias=False)
 
     def forward(self, tokens, emb):
         """tokens (N, Lc) -> per-token states (N, Lc, enc_dim) and unit-length keys (N, h)."""
@@ -73,6 +73,8 @@ class RetrievalCircuit(nn.Module):
         super().__init__()
         self.chunk, self.topk, self.h, self.query = cfg.chunk, cfg.rag_topk, cfg.h, cfg.rag_query
         self.alpha = nn.Parameter(torch.zeros(()))                         # weight of the slot's stream in the query
+        kd = cfg.rag_key_dim or cfg.h
+        self.own = nn.Linear(cfg.h, kd, bias=False) if kd != cfg.h else None   # the slot's stream into key space
         self.log_tau = nn.Parameter(torch.zeros(()))                       # sharpness of "which result to trust" (starts at 1)
 
     @staticmethod
@@ -99,9 +101,12 @@ class RetrievalCircuit(nn.Module):
         else:
             own = A[:, ends].float()                                       # (B, n-1, g, h)
         base = self.context_keys(mem, C, n)[:, :n - 1].unsqueeze(2).float()        # (B, n-1, 1, h)
+        if self.own is not None:
+            own = self.own(own)
         q = F.normalize(base + self.alpha * F.normalize(own, dim=-1), dim=-1)
         M = B * (n - 1) * g
-        qf = q.reshape(M, h)
+        kd = q.shape[-1]
+        qf = q.reshape(M, kd)
         docs = None
         if mem.doc_ids is not None:
             docs = mem.doc_ids[:, ends].unsqueeze(-1).expand(B, n - 1, g).reshape(M)
@@ -110,7 +115,7 @@ class RetrievalCircuit(nn.Module):
         tok = ds.tokens[idx].reshape(M * k, -1)
         keys = mem.encoder(tok, mem.emb)[1]                                # re-encoded live: gradients flow
         Lc = tok.shape[1]
-        score = self.log_tau.exp() * (qf.unsqueeze(1) * keys.view(M, k, h).float()).sum(-1)
+        score = self.log_tau.exp() * (qf.unsqueeze(1) * keys.view(M, k, kd).float()).sum(-1)
         logp = torch.log_softmax(score.masked_fill(~valid, -1e4), dim=1)   # (M, k)
         # Retrieved tokens in this layer's own stream space, through this slot's own input rows. Plain token
         # embeddings: an earlier version also added the encoder's in-chunk states through a zero-initialised matrix,

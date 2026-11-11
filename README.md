@@ -59,8 +59,8 @@ hybrid beat it on every kind of text, with both seeds, at 13M parameters (bits p
 
 That's small scale and short training. At 6,000 steps the hybrid is still ahead on every kind of text, but by less
 (0.006). After the speed work the hybrid costs 1.13 times a Llama per token at 0.1B. Given the same training time on
-the same GPU at 27M, each at its best learning rate, the hybrid still wins on every kind of text, narrowly (0.006
-on average, both seeds). Details:
+the same GPU, it ties Llama at 13M and wins at 27M (0.006 on average, every kind of text, both seeds): the lead
+grows with size. 48M is next. Details:
 [results/README.md](results/README.md#8-overnight-sweep-making-tonn-beat-llama-experimentsrun_queuesh-resultssweep).
 
 Nobody picks which circuit goes where. While the model trains, TONN switches each kind of circuit off on text it has not trained on and keeps it only if the error goes up. Useless circuits are replaced by new ones, drawn more often from the kinds that have proven useful. Early in training the architecture changes; later it is frozen.

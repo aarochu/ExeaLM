@@ -124,7 +124,7 @@ Starting points. Almost everything here runs on a laptop or a free Google Colab 
 
 ### Swarms and agents (`exealm/model/board.py`, `exealm/data/loader.py`, [docs/swarms.md](docs/swarms.md))
 - [ ] First experiment: does a split swarm predict its text better than solo agents reading the same text? (`small` preset)
-- [ ] (starter) Measure board use during training: AG worth in the search log, how often agents read nothing, post strength
+- [x] (starter) Measure board use during training: AG worth in the search log, how often agents read nothing, post strength (`board` in eval records, `board_worth` in search records)
 - [ ] Related swarms: group documents that are near each other in the model's own retrieval space
 - [ ] Cross-lingual swarms: pair Japanese and English Wikipedia articles on the same topic (interlanguage links)
 - [ ] Swarm sizes that vary within a run (2 to 8)

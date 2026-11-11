@@ -1,5 +1,5 @@
-eqt_big_hybrid_lr1e3|--root data/tokpack --toks bpe32k --device mps --steps 3000 --seeds 0 --seconds 2000 --lr 1e-3 --models tonn_core --size '{"d": 512, "n_layers": 10, "slots": 16, "h": 32}' --cfg '{"attn_layers": [1, 3, 5, 7, 9], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}}'
-eqt_big_hybrid_lr15e4|--root data/tokpack --toks bpe32k --device mps --steps 3000 --seeds 0 --seconds 2000 --lr 1.5e-3 --models tonn_core --size '{"d": 512, "n_layers": 10, "slots": 16, "h": 32}' --cfg '{"attn_layers": [1, 3, 5, 7, 9], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}}'
+big_llama_3k|--root data/tokpack --toks bpe32k --device mps --steps 3000 --seeds 0 --lr 1e-3 --models llama --size '{"d": 512, "n_layers": 10, "slots": 16, "h": 32}'
+eqt_big_attn6|--root data/tokpack --toks bpe32k --device mps --steps 3000 --seeds 0 --seconds 2000 --models tonn_core --size '{"d": 512, "n_layers": 10, "slots": 16, "h": 32}' --cfg '{"attn_layers": [1, 2, 4, 5, 7, 8], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}}'
 ragtext_hybrid|experiments/rag_text.py --data data/bytes/train --val data/bytes/val --chunks 200000 --steps 4000 --arms rag,none --hybrid 1 --device mps --out results/rag_text_hybrid
 swarmtext_hybrid|experiments/swarm_text.py --data data/bytes/train --val data/bytes/val --steps 4000 --arms split,split_solo --hybrid 1 --device mps --out results/swarm_text_hybrid
 hconv_024|--root data/tokpack --toks bpe32k --device mps --steps 3000 --seeds 0,1 --models tonn_core --cfg '{"attn_layers": [0, 2, 4], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}}'

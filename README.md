@@ -148,7 +148,7 @@ Small-scale tests on a Mac Studio, all in [results/README.md](results/README.md)
 - **The model builds its own RAG.** On facts that change every step, it finds the right one among 1,024 it has never
   seen: 100% correct with its datastore, 1.5% (chance) without. It learns its own embeddings, queries and reading.
   The first design never learned; the report says what broke and why.
-- **On real text the board helps:** on the hybrid, swarms beat a matched control by 0.015 bits per byte (0.9%, one seed; 0.006 on pure TONN), and training as a swarm improved each agent even with its board cut.
+- **On real text the board helps:** on the hybrid, swarms beat a matched control by 0.014 bits per byte (0.8%, both seeds; 0.006 on pure TONN), and training as a swarm makes each agent better even with its board cut (0.010).
 - **Tokenizer: 32k.** It wins or ties 49k and 64k on English, Japanese and code at a fixed token budget.
 - **Speed:** the default 0.1B model (2:1 hybrid) trains at the same speed as a same-size Llama (1.01x per token), 1.49x with retrieval on.
 - **Pure TONN lost to Llama on real tokens; the hybrid wins.** Pure TONN trailed a same-size Llama, mostly on code. A

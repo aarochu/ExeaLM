@@ -62,18 +62,20 @@ All arms are scored on the same held-out split swarms.
 - In pretraining, swarms should either keep the number of independent stretches up (more rows per batch) or read
   different documents (related swarms) instead of one stretch.
 
-**On the hybrid** (the default architecture, `results/swarm_text_hybrid/`, seed 0):
+**On the hybrid** (the default architecture, `results/swarm_text_hybrid/`, 2 seeds):
 
-| Trained as | Bits per byte, board shared | Bits per byte, board cut |
-|---|---|---|
-| Split swarms | **1.623** | 1.627 |
-| Split batches, board cut while training (control) | | 1.639 |
+| Trained as | Seed | Bits per byte, board shared | Bits per byte, board cut |
+|---|---|---|---|
+| Split swarms | 0 | **1.623** | 1.627 |
+| Split swarms | 1 | **1.622** | 1.626 |
+| Split batches, board cut while training (control) | 0 | | 1.639 |
+| Split batches, board cut while training (control) | 1 | | 1.634 |
 
-- **Swarms beat the matched control by 0.015 bits per byte** (about 0.9%), 2.5 times the gain on pure TONN.
-- Every position in the swarm gains, by 0.012 to 0.019.
-- The swarm-trained model is better than the control even with its board cut (1.627 vs 1.639): training as a swarm
-  seems to improve each agent on its own, beyond what it reads from the board.
-- One seed; seed 1 is queued.
+- **Swarms beat the matched control by 0.014 bits per byte on average** (0.015 and 0.012 on the two seeds, about 0.8%),
+  more than twice the gain on pure TONN.
+- Every position in the swarm gains.
+- The swarm-trained model is better than the control even with its board cut, by 0.010 on average: training as a swarm
+  improves each agent on its own, beyond what it reads from the board.
 
 Next steps toward the bet (a 0.1B model that takes on large problems with its swarm):
 - swarms of related documents instead of consecutive windows;

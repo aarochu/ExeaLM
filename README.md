@@ -18,7 +18,7 @@ Paper: [TONN: Networks That Build Their Own Architecture from Data](https://www.
 
 ## Data
 
-About 100 billion tokens, selected from open corpora: the [NII LLM-jp Corpus v4](https://gitlab.llm-jp.nii.ac.jp/datasets/llm-jp-corpus-v4), the data released with [K2 Horizon](https://ifm.ai/blog/k2), FineWeb-Edu, DCLM-Baseline, and others. The count comes from our compute budget, about 850 MI300X GPU-hours for a model of roughly 1 billion parameters. [DATA.md](DATA.md) has the full mix, every dataset link, and the math behind the number. Every source, license, and filter gets documented.
+About 100 billion tokens, selected from open corpora: the [NII LLM-jp Corpus v4](https://gitlab.llm-jp.nii.ac.jp/datasets/llm-jp-corpus-v4), the data released with [K2 Horizon](https://ifm.ai/blog/k2), FineWeb-Edu, DCLM-Baseline, and others. The count is set by diminishing returns: past about 200 billion tokens, extra data buys little for a model of roughly 1 billion parameters. [DATA.md](DATA.md) has the full mix, every dataset link, and the math behind the number. Every source, license, and filter gets documented.
 
 ## Training
 

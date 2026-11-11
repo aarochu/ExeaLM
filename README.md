@@ -4,20 +4,22 @@ An open language model built by high schoolers, run by [Exea Labs](https://exeal
 
 **The idea:** ExeaLM is a 0.1B-parameter (about 100 million) language model, pretrained from scratch on about 100 billion tokens and then post-trained into an assistant, like any other LLM. What's different is the architecture, **TONN**, which builds two new abilities into every layer: **its own RAG**, where the model learns its own embeddings, decides what to search for, and pulls text from a read-only datastore, and **agent-to-agent communication**, where copies of the model post messages to a shared board and read each other's. Both are circuits inside the network, trained end to end like everything else, not tools bolted on afterwards.
 
+**The bet:** a 0.1B model can take on problems far bigger than its size, because it doesn't have to do everything alone. Its knowledge doesn't all have to fit in 100 million weights, because the model looks things up through its own RAG. A large problem doesn't have to fit in one copy's context or skill, because a swarm of copies splits the work and shares what they find through the board. And because both abilities are part of the architecture from the first step of pretraining, the model learns to search and collaborate the way it learns language, not through tools added at the end. This is a hypothesis we are testing, not a result yet. The headline experiment is a swarm of 0.1B agents with retrieval against a single larger model on the same tasks, at the same inference compute.
+
 **Status:** skeleton. No weights are released yet. The model code (TONN, the retrieval circuit, the agent-board circuit, the architecture search) runs and is tested. The data scripts (download, filter, tokenizer, packing) work on small samples. Training at scale, post-training and evals are partly written: those are open tasks.
 
 ## Join
 
 Fill out the sign-up form so we can list you as a contributor: https://docs.google.com/forms/d/e/1FAIpQLSdPHVZhuXxBDUf-cJM2zDbj1JZPsduu95Y_kTJ_g4gKAXdDVw/viewform
 
-The repo is public, so you can open an issue or pull request without signing up. The form gives us a record of who worked on the project. [CONTRIBUTING.md](CONTRIBUTING.md) explains how to start. Pick something from [Where we need help](#where-we-need-help) or the [issues](https://github.com/exea-labs/ExeaLM/issues).
+The repo is public, so you can open an issue or pull request without signing up. The form gives us a record of who worked on the project. [CONTRIBUTING.md](CONTRIBUTING.md) explains how to start. Pick something from the [to-do list](#to-do-list): almost all of it runs on a laptop or a free Colab GPU.
 
 ## Start in five minutes
 
 ```bash
 git clone https://github.com/exea-labs/ExeaLM && cd ExeaLM
 pip install -e ".[dev,data]"
-pytest                                                           # 16 tests, a few seconds, CPU is fine
+pytest                                                           # 17 tests, a few seconds, CPU is fine
 
 # train a tiny model on made-up data (no download, about 10 seconds on a laptop CPU)
 python -m exealm.train.pretrain --preset tiny --data synthetic --steps 300 --datastore_chunks 2000
@@ -27,10 +29,10 @@ python -m exealm.train.pretrain --preset tiny --data synthetic --steps 300 --mod
 
 # real data: one file of Japanese Wikipedia from the LLM-jp corpus (~320 MB)
 python -m exealm.data.download llmjp --subset ja/ja_wiki --max_files 1 --out data/raw
-python -m exealm.data.sources                                    # print the candidate sources, mix proposal v0, and licenses
+python -m exealm.data.sources                                    # print the two candidate 100B-token mixes
 ```
 
-Full data walkthrough (filter, tokenizer, pack, train): [docs/data.md](docs/data.md).
+Full data walkthrough (filter, tokenizer, pack, then train the 17M `small` preset, which fits on a laptop or a free Colab GPU): [docs/data.md](docs/data.md).
 
 ## The plan
 
@@ -76,21 +78,31 @@ All of it is learned from the next-token loss. The datastore never returns chunk
 
 ### 3. Agents that talk to each other (the AG circuit, read and write)
 
-Every layer has at least one **AG** circuit, which connects to the **agent board**. Once per 64 tokens, each copy of the model posts a message: what it is about, what it says, and how strongly it wants it read, so it can stay quiet. At every position it reads its teammates' earlier messages with attention, and it can choose to read nothing. The datastore is read-only; the board is read *and* write. During pretraining, the rows of a batch form teams that share a board. At inference, many running agents share a persistent board.
+Every layer has at least one **AG** circuit, which connects to the **agent board**. Once per 64 tokens, each copy of the model posts a message: what it is about, what it says, and how strongly it wants it read, so it can stay quiet. At every position it reads the earlier messages of the other agents in its swarm with attention, and it can choose to read nothing. The datastore is read-only; the board is read *and* write. At inference, many running agents can share a persistent board.
 
 **Guaranteed, then chosen:** every layer starts with one RG and one AG circuit, and the search can never remove the last one, because both need training before they become useful. The search is free to add more wherever they earn it. Design and open questions: [docs/memory.md](docs/memory.md).
 
-### 4. Data: about 100 billion tokens
+### 4. Swarms: agents that work together
 
-Selected from two open corpora (a few more candidate sources are in [DATA.md](DATA.md)):
+A **swarm** is a few agents (4 by default) sharing one board. Training runs many swarms at once: each batch is split into swarms, each with a private board, and swarms never hear each other.
+
+- **Pretraining: swarms pull data together.** Each agent reads ordinary training text, so swarms cost no extra data. The swarm is chosen so that what one agent reads helps the others: parts of one long document (built), related documents, or the same topic in Japanese and English (to do). Some swarms are random, so agents also learn when to ignore the board. Each agent also searches the datastore on its own and can share what it finds.
+- **Post-training: swarms solve tasks together.** Each agent gets part of the information and one must answer. Because a swarm runs in one forward pass, the answer's loss trains every agent's messages directly. After that, RL rewards the whole swarm for solving split-information questions, divide-and-conquer math, and write-and-test code.
+
+To our knowledge, ExeaLM is the first language model with agent-to-agent communication built into its architecture. Until an experiment shows agents learning to say something useful, that is a design, not a result. Design, rules and open questions: [docs/swarms.md](docs/swarms.md).
+
+### 5. Data: about 100 billion tokens
+
+Selected from open corpora, including:
+- **[FineWeb-Edu](https://huggingface.co/datasets/HuggingFaceFW/fineweb-edu)** and **[DCLM-Baseline](https://huggingface.co/datasets/mlfoundations/dclm-baseline-1.0)**: filtered English web text, the largest part of the mix.
 - **[NII LLM-jp Corpus v4](https://gitlab.llm-jp.nii.ac.jp/datasets/llm-jp-corpus-v4):** 19.5T tokens in total, including 688B Japanese and 17.8T English, plus code, Chinese and Korean. It downloads without an account.
 - **The data released with [K2 Horizon](https://ifm.ai/blog/k2)** (Institute of Foundation Models, [collection](https://huggingface.co/collections/IFM/k2-horizon)): [TxT360-v2](https://huggingface.co/datasets/IFM/TxT360-v2) (web and QA), [Pretrain-Behaviors](https://huggingface.co/datasets/IFM/Pretrain-Behaviors), [Math-Reasoning](https://huggingface.co/datasets/IFM/Math-Reasoning), [Code-Reasoning](https://huggingface.co/datasets/IFM/Code-Reasoning), [SFT-Reasoning](https://huggingface.co/datasets/IFM/SFT-Reasoning).
 
-Every subset, its link and its license are in [`exealm/data/sources.py`](exealm/data/sources.py), with **mix proposal v0**, a Japanese, English, math, code and K2 Horizon mix written for a 2T-token pool. We train on about 100B tokens, so each bucket scales down by about 20 times and keeps its share. The mix is a starting point to argue with, not a decision.
+There are two candidate 100B-token mixes: DATA.md's (English-heavier) and mix proposal v0 (about 21% Japanese). Small ablations decide between them. Every dataset link and license is in [DATA.md](DATA.md) and [docs/data.md](docs/data.md), and both mixes are in [`exealm/data/sources.py`](exealm/data/sources.py).
 
 **Why 100 billion tokens:** extra tokens help less and less. 100B tokens on a 0.1B model is 1,000 tokens per parameter, about 50 times the compute-optimal ratio, on purpose. By the Chinchilla loss fit, predicted loss drops about 0.19 going from 20B to 100B tokens, about 0.06 from 100B to 200B, and about 0.05 from 200B to 400B. Past roughly 200B tokens, extra data buys little. The math is in [DATA.md](DATA.md).
 
-### 5. Training
+### 6. Training
 
 - **Pretraining:**
   - next-token prediction with a warmup-stable-decay learning rate;
@@ -98,36 +110,120 @@ Every subset, its link and its license are in [`exealm/data/sources.py`](exealm/
   - the retrieval index is refreshed as the model's own encoder learns;
   - the best data is saved for the final decay phase.
 
-  Compute: about 6 × 10¹⁹ FLOPs, or roughly 40 to 120 H100-hours depending on how fast we make TONN, so a day or less on 8 GPUs. [docs/training.md](docs/training.md)
+  Compute: about 6 × 10¹⁹ FLOPs. That is about 56 MI300X GPU-hours at transformer speed, and about 200 at TONN's current speed with retrieval, so about a day on 8 GPUs. [docs/training.md](docs/training.md)
 - **Post-training,** in this order:
   1. supervised fine-tuning on conversations ([`sft.py`](exealm/train/sft.py));
   2. preference tuning ([`dpo.py`](exealm/train/dpo.py));
   3. reinforcement learning with **GRPO** ([`grpo.py`](exealm/train/grpo.py), the method behind DeepSeek-R1);
-  4. **multi-agent RL**: teams of agents share a board and are rewarded together. This is where the AG circuits really learn to talk.
+  4. **swarm SFT and swarm RL**: swarms share a board and are trained and rewarded together. This is where the AG circuits really learn to talk.
 - **Compute:** one central run on cloud compute arranged by Exea. You don't need a GPU to contribute. Weights will be released at https://huggingface.co/exea-labs/ExeaLM.
 
-## Where we need help
+## To-do list
 
-| Area | What | Where |
-|---|---|---|
-| Data | Count tokens per K2 Horizon subset; improve the mix; near-duplicate removal; a quality classifier for Japanese and English; benchmark decontamination | [`exealm/data/`](exealm/data), [docs/data.md](docs/data.md) |
-| Tokenizer | Pick the vocabulary size (32k/49k/64k) by experiment; handle Japanese well | [`tokenizer.py`](exealm/data/tokenizer.py) |
-| Architecture | New circuit types; better RG and AG designs; fair TONN vs Llama comparisons at bigger sizes | [`exealm/model/`](exealm/model), [docs/architecture.md](docs/architecture.md) |
-| Retrieval | A FAISS index for billions of tokens; what goes in the datastore; cheaper re-indexing | [`datastore.py`](exealm/memory/datastore.py), [docs/memory.md](docs/memory.md) |
-| Agents | How to pick teammates in pretraining; multi-agent tasks and rewards; turning board messages into readable text | [`board.py`](exealm/model/board.py), [docs/memory.md](docs/memory.md) |
-| Speed | Triton/CUDA kernels for TONN's scans; fast generation with a recurrent state cache; multi-GPU training | [`scan.py`](exealm/model/scan.py), [`pretrain.py`](exealm/train/pretrain.py) |
-| Training tricks | Muon optimizer, multi-token prediction (DeepSeek-V3), μP, FP8, distillation from a larger open model | [docs/ideas.md](docs/ideas.md) |
-| Post-training | SFT and DPO loops, the GRPO loop and rewards, Japanese instruction data | [`exealm/train/`](exealm/train) |
-| Evals | lm-evaluation-harness wrapper; Japanese evals (llm-jp-eval); retrieval and agent evals | [`exealm/eval/`](exealm/eval) |
-| Docs | Clearer explanations, diagrams, translations | `docs/` |
+Starting points. Almost everything here runs on a laptop or a free Google Colab GPU, using the `tiny` preset or the 17M-parameter `small` preset. Items marked **(starter)** are good first tasks. Items marked **(GPU)** need bigger GPUs: maintainers run those on Exea's compute, and you can still write and test the code on a small model. To claim an item, say so in #exealm or open a draft pull request. Anything that changes the model or the training has to win a fair small-scale comparison first ([CONTRIBUTING.md](CONTRIBUTING.md)).
 
-The rule for architecture and training changes: **a change has to beat the current default in a fair, small-scale comparison first**. Fair means the same data, the same number of steps and about the same parameter count. Compare against [`exealm/model/baseline.py`](exealm/model/baseline.py), a plain Llama-style transformer, or against the current TONN default.
+### Swarms and agents (`exealm/model/board.py`, `exealm/data/loader.py`, [docs/swarms.md](docs/swarms.md))
+- [ ] First experiment: does a split swarm predict its text better than solo agents reading the same text? (`small` preset)
+- [ ] (starter) Measure board use during training: AG worth in the search log, how often agents read nothing, post strength
+- [ ] Related swarms: group documents that are near each other in the model's own retrieval space
+- [ ] Cross-lingual swarms: pair Japanese and English Wikipedia articles on the same topic (interlanguage links)
+- [ ] Swarm sizes that vary within a run (2 to 8)
+- [ ] Agent identity: a role or id signal on posts so agents can specialize
+- [ ] Retrieval division of labor: do agents in a swarm pull different chunks? Try rewarding it
+- [ ] Swarm-aware multi-GPU training, keeping each swarm on one GPU (testable on a CPU with two processes)
+- [ ] Swarm SFT data: split-information tasks built from multi-hop QA. This also fills the "tool use and agentic" gap in [DATA.md](DATA.md)
+- [ ] Swarm SFT loop: loss on the answering agent, trained through the board (test on the `tiny` preset)
+- [ ] Swarm RL (GRPO): whole-swarm attempts with a shared reward (test on the `tiny` preset)
+- [ ] Swarm task suite: split-information QA, divide-and-conquer math, write-and-test code, propose-and-check, cross-lingual QA
+- [ ] Swarm generation: all agents generate in lockstep in one batch
+- [ ] Board server so agents on different machines share one board (HTTP or Redis)
+- [ ] Message decoder: turn board messages into text people can read
+- [ ] Safety: agents treat other agents' messages as information, not instructions (data and an eval)
+- [ ] Swarm eval: the same tasks solo vs swarms of 2, 4 and 8
+- [ ] Headline eval: a swarm of 0.1B agents with retrieval vs a single larger open model (for example 1B) on the same large tasks at the same inference compute. Build and test the harness now on `tiny` checkpoints and small open models
+
+### Retrieval (`exealm/model/retrieval.py`, `exealm/memory/datastore.py`)
+- [ ] FAISS (IVF-PQ) index for the datastore (FAISS runs on a CPU, so start there)
+- [ ] Choose what goes in the datastore: a curated few billion tokens of reference text
+- [ ] Re-indexing schedule: how stale can the stored keys get? (`small` preset)
+- [ ] Cheaper retrieval: cache encodings, share retrievals across layers, tune top-k and chunk length
+- [ ] Key size: 32 vs 64 vs 128 numbers (`small` preset)
+- [ ] (starter) Script that prints what RG retrieved for a prompt
+- [ ] Swap the datastore at inference: can the model use new facts without retraining?
+
+### Architecture (`exealm/model/`)
+- [ ] TONN vs Llama with the `small` preset on real tokens, two seeds each (a free Colab GPU is enough)
+- [ ] Ablations at `small` size: with and without RG, AG and swarms
+- [ ] New circuit types, for example a gated delta-rule memory or sliding-window attention
+- [ ] Shape sweep at fixed parameters: depth, width, slots per layer, channels per slot
+- [ ] Search schedule: how long to search, how much to replace, how long new circuits are protected
+- [ ] Which circuit types survive the search, and does that change from `tiny` to `small`?
+- [ ] (starter) Plot the architecture the search chose, layer by layer, over training
+- [ ] (GPU) Confirm the winners at the full 0.1B size
+
+### Speed (`exealm/model/scan.py`)
+- [ ] Fused Triton kernels for `decay_scan` and `gated_scan` (any NVIDIA GPU works, including a free Colab T4; must also run on AMD MI300X)
+- [ ] One scan call for all running-sum circuits in a layer
+- [ ] Recurrent state cache, so generating a token doesn't re-read the whole context
+- [ ] `torch.compile` support
+- [ ] (starter) Benchmark script: training and generation tokens per second, TONN vs Llama
+- [ ] (GPU) Run the tests and a short training run on an MI300X and report what breaks
+
+### Data ([DATA.md](DATA.md), `exealm/data/`)
+- [ ] Download and stage every DATA.md source: parallel, resumable, checksummed (build and test it on samples)
+- [ ] (starter) Count tokens in each K2 Horizon subset (streams, no big download)
+- [ ] (starter) Write a formatter for each K2 Horizon subset, since their fields differ
+- [ ] Remove near-duplicates across all sources (MinHash LSH, runs on a CPU)
+- [ ] Decontaminate against every benchmark we report
+- [ ] Filter personal data and toxicity
+- [ ] Quality classifier for Japanese web text (small classifier, Colab-sized)
+- [ ] Mix ablations: three or four versions of the mix with the `small` preset; the best two get confirmed at 0.1B **(GPU)**
+- [ ] Streaming loader with per-source weights
+- [ ] (starter) Data card: every source, license, filter and token count
+
+### Tokenizer (`exealm/data/tokenizer.py`)
+- [ ] Train 32k, 49k and 64k candidates; compare bytes per token on English, Japanese and code (CPU)
+- [ ] Pick by `small`-preset loss and publish on Hugging Face
+- [ ] Final special tokens: chat roles, agent roles, board
+
+### Training (`exealm/train/pretrain.py`)
+- [ ] Multi-GPU: DDP, then FSDP (DDP is testable on a CPU with two processes)
+- [ ] Exact resume from checkpoints
+- [ ] Weights & Biases logging
+- [ ] Context extension near the end of training
+- [ ] Optimizer: Muon vs AdamW (`small` preset)
+- [ ] Multi-token prediction heads (`small` preset)
+- [ ] Learning-rate transfer from small models (μP): tune on `tiny`/`small`, carry over to 0.1B
+- [ ] (starter) Budget sheet: GPU-hours per run, checkpoint cadence, what we can afford
+
+### Post-training (`exealm/train/`)
+- [ ] SFT loop and data loader (pack conversations so they can't see each other; test on `tiny`)
+- [ ] DPO loop
+- [ ] GRPO loop with math and code rewards
+- [ ] Chat template
+- [ ] Do long reasoning traces help a model this small? Test on an existing small open model such as SmolLM2-135M (Colab)
+
+### Evals (`exealm/eval/`)
+- [ ] (starter) lm-evaluation-harness wrapper (test it on a `tiny` checkpoint)
+- [ ] Japanese evals (llm-jp-eval)
+- [ ] Retrieval eval: questions answered in the datastore but not in the prompt
+- [ ] Run evals automatically on every checkpoint
+- [ ] Results table in this README
+
+### Release, docs and community
+- [ ] Hugging Face model card and a loader, so the model loads with one line
+- [ ] Demo: chat with one agent or a swarm (build it on a `tiny` checkpoint now)
+- [ ] (starter) Diagrams: a TONN layer, RG, AG, a swarm
+- [ ] (starter) Japanese translation of this README
+- [ ] (starter) Glossary of terms
+- [ ] (starter) Beginner notebook: train the `tiny` model and look inside it
+- [ ] Technical report
 
 ## Repo layout
 
 ```
 exealm/
-  config.py              model sizes: "100m" (the real one, 101M parameters) and "tiny" (tests)
+  config.py              model sizes: "100m" (the real one, 101M parameters), "small" (17M, laptop/Colab), "tiny" (tests)
   model/
     tonn.py              the TONN layer and the full model
     circuits.py          the circuit menu
@@ -139,10 +235,10 @@ exealm/
   memory/
     datastore.py         read-only retrieval datastore
     board.py             persistent read-write agent board
-  data/                  sources + licenses, download, quality filters, tokenizer, packing, batches
+  data/                  sources + licenses, download, quality filters, tokenizer, packing, swarm batches
   train/                 pretrain, sft, dpo, grpo
   eval/                  evaluation plan
-docs/                    architecture, memory (RAG + agents), data, training, ideas
+docs/                    architecture, memory (RAG + agents), swarms, data, training, ideas
 tests/                   run with pytest
 ```
 
@@ -151,13 +247,13 @@ tests/                   run with pytest
 1. [x] Skeleton: TONN model with RG and AG circuits, architecture search, training script, tests
 2. [ ] Data pipeline: download, dedupe, filter, and mix the 100B tokens
 3. [ ] Tokenizer
-4. [ ] Small-scale architecture experiments: TONN vs Llama from 10M to 100M parameters, with and without RG and AG
+4. [ ] Small-scale architecture experiments: TONN vs Llama from 10M to 100M parameters, with and without RG, AG and swarms
 5. [ ] Fast kernels and multi-GPU training
 6. [ ] Evaluation harness (English and Japanese, retrieval, agents)
 7. [ ] Full training run
-8. [ ] Post-training (SFT, DPO, GRPO, multi-agent RL) and release
+8. [ ] Post-training (SFT, DPO, GRPO, swarm training) and release
 
-Each phase gets an issue with an owner. Open tasks are in [issues](https://github.com/exea-labs/ExeaLM/issues).
+Each phase gets an owner. Open tasks are in the [to-do list](#to-do-list).
 
 ## Community
 

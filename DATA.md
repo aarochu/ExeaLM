@@ -21,7 +21,7 @@ We select the 100B tokens from roughly 40T available, so nothing needs to be rep
 
 ## Pretraining mix (100B tokens)
 
-This is a candidate mix. The team's mix proposal v0 (`exealm/data/sources.py`, [docs/data.md](docs/data.md)) is Japanese-heavier (about 21% Japanese) and was written for a 2T-token pool. Scale it to 100B and compare the two with small ablations before choosing.
+This is candidate A. Candidate B, mix proposal v0, is Japanese-heavier (about 21% Japanese, mostly LLM-jp and K2 Horizon data); it was written for a 2T-token pool and `exealm/data/sources.py` has it scaled to 100B ([docs/data.md](docs/data.md)). We compare the two with small ablations before choosing.
 
 | Bucket | Tokens | Share | Datasets |
 |---|---|---|---|

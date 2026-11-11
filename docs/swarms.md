@@ -5,6 +5,11 @@ A **swarm** is a few copies of the model (agents, 4 by default) that share one a
 each with its own private board, and swarms never hear each other. Each swarm sits on one GPU, so boards need no
 traffic between GPUs.
 
+Why swarms matter: they are how a 0.1B model is meant to take on large problems. One copy holds little knowledge and a
+limited context. Many copies, each searching the datastore and passing on what they find, can split a big problem and
+combine the pieces. The headline test is a swarm of 0.1B agents against a single larger model on the same tasks at
+the same inference compute.
+
 Swarms cost no extra data. Every agent reads ordinary training text and predicts its own next tokens. The only
 question is *which* texts end up in the same swarm, and the board adds a little compute.
 

@@ -49,7 +49,7 @@ def score(model, batches, swarm_size, n_agents, dev):
 
 
 def HYBRID_KW(layers):
-    return dict(attn_layers=tuple(range(1, layers, 2)), **HYBRID)
+    return dict(attn_layers=tuple(i for i in range(layers) if i % 3), **HYBRID)   # every third layer TONN (default)
 
 
 def run(arm, a, dev, train, evals):

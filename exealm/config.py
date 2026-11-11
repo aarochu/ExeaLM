@@ -1,10 +1,13 @@
 """Model configuration.
 
-Three presets:
-    "100m"   the model we plan to train: 101M parameters (31M of them the embedding table), on about 100B tokens
-    "small"  17M parameters (13M embedding table) with the same vocabulary: for real-data experiments on a laptop or a
-             free Colab GPU
-    "tiny"   for tests and quick checks on synthetic data Every number here is a starting point, not a decision: changing them is one of the easiest ways to contribute
+Presets:
+    "100m"        the model we plan to train: 101M parameters (31M of them the embedding table), on about 100B tokens;
+                  a hybrid (TONN layers alternating with attention layers)
+    "100m-tonn"   the same size, every layer TONN
+    "small"       17M parameters (13M embedding table) with the same vocabulary, hybrid: for real-data experiments on
+                  a laptop or a free Colab GPU
+    "small-tonn"  the same size, every layer TONN (the base the experiment scripts start from)
+    "tiny"        for tests and quick checks on synthetic data Every number here is a starting point, not a decision: changing them is one of the easiest ways to contribute
 (see docs/ideas.md), as long as the change wins a fair comparison first (CONTRIBUTING.md).
 """
 import json
@@ -57,9 +60,16 @@ class ModelConfig:
         return cls(**d)
 
 
+# The default ExeaLM is a hybrid: TONN layers alternate with full attention layers, and TONN's starting circuits favour
+# short convolutions. At 13M parameters on real tokens this beat a same-size Llama on English, Japanese and code with
+# both seeds, where pure TONN lost (results/README.md, sections 7 and 8).
+HYBRID = dict(init_weights={"C": 4.0, "G": 0.25, "D": 0.25})
+
 PRESETS = {
-    "100m": ModelConfig(),
-    "small": ModelConfig(d=256, n_layers=6, slots=8, h=32, enc_dim=128),
+    "100m": ModelConfig(attn_layers=tuple(range(1, 14, 2)), **HYBRID),
+    "100m-tonn": ModelConfig(),
+    "small": ModelConfig(d=256, n_layers=6, slots=8, h=32, enc_dim=128, attn_layers=(1, 3, 5), **HYBRID),
+    "small-tonn": ModelConfig(d=256, n_layers=6, slots=8, h=32, enc_dim=128),
     "tiny": ModelConfig(vocab_size=256, d=64, n_layers=2, slots=8, h=8, chunk=8, rag_topk=2, rag_chunk_len=8,
                         enc_dim=32, swarm_size=2),
 }

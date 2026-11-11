@@ -56,7 +56,7 @@ def run(tok, a, dev, kind="tonn", seed=0):
         for k in ("attn_layers", "menu", "lags"):
             if k in over:
                 over[k] = tuple(over[k])
-    cfg = get_config("small", vocab_size=int(train.meta["vocab_size"]), seed=seed, **over)
+    cfg = get_config("small-tonn", vocab_size=int(train.meta["vocab_size"]), seed=seed, **over)
     model = (Llama(cfg) if kind == "llama" else ExeaLM(cfg)).to(dev)
     searcher, sel = None, None
     if kind.endswith("_search"):
@@ -65,7 +65,7 @@ def run(tok, a, dev, kind="tonn", seed=0):
         sel = [(x.to(dev), y.to(dev), MemoryContext()) for x, y, _ in (train.batch(a.batch, a.seq, srng) for _ in range(4))]
     opt = make_optimizer(model, a.lr, 0.1)
     rng = np.random.default_rng(seed)
-    t0, bytes_seen = time.time(), 0.0
+    t0, bytes_seen, curve, recent = time.time(), 0.0, [], []
     for step in range(a.steps):
         for g in opt.param_groups:
             g["lr"] = lr_at(step, a.steps, a.lr, 200, 0.2)
@@ -78,13 +78,18 @@ def run(tok, a, dev, kind="tonn", seed=0):
         torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
         opt.step()
         bytes_seen += a.batch * a.seq * train.meta["bytes_per_token"]
+        recent.append(float(loss.detach()))
+        if (step + 1) % 250 == 0:                          # training-loss curve (spikes show instability)
+            curve.append(round(sum(recent) / len(recent), 4))
+            recent = []
         if dev.type == "mps" and step % 200 == 0:
             torch.mps.empty_cache()
     rec = dict(model=kind, tag=a.tag, cfg=a.cfg if kind != "llama" else "{}", lr=a.lr, seed=seed, tokenizer=tok,
                vocab=int(train.meta["vocab_size"]), params_M=round(count_params(model) / 1e6, 2),
                steps=a.steps, tokens_seen=a.steps * a.batch * a.seq, bytes_seen=int(bytes_seen),
                secs=round(time.time() - t0, 1),
-               bits_per_byte={v[4:]: bits_per_byte(model, s, a, dev) for v, s in vals.items()})
+               bits_per_byte={v[4:]: bits_per_byte(model, s, a, dev) for v, s in vals.items()},
+               architecture=model.architecture() if kind != "llama" else None, train_loss_every_250=curve)
     print(json.dumps(rec), flush=True)
     return rec
 

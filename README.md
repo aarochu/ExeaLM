@@ -45,6 +45,19 @@ TONN is a sequence model that builds its own architecture from data. A normal tr
 
 After each TONN layer comes a gated MLP, as in a transformer.
 
+**ExeaLM is a hybrid.** TONN layers alternate with full attention layers (7 of each in the 0.1B model), and TONN's
+starting circuits favour short convolutions. Pure TONN lost to a same-size Llama on real tokens, mostly on code. The
+hybrid beat it on every kind of text, with both seeds, at 13M parameters (bits per byte, lower is better):
+
+| Model (13M parameters, 3,000 steps) | English | Japanese wiki | Japanese web | Code |
+|---|---|---|---|---|
+| Llama-style transformer (2 seeds) | 1.467 | 1.540 | 1.420 | 1.789 |
+| Pure TONN (2 seeds) | 1.480 | 1.568 | 1.422 | 1.979 |
+| **ExeaLM hybrid (2 seeds)** | **1.452** | **1.521** | **1.404** | **1.746** |
+
+That's small scale and short training; longer runs and bigger models are next. Details:
+[results/README.md](results/README.md#8-overnight-sweep-making-tonn-beat-llama-experimentsrun_queuesh-resultssweep).
+
 Nobody picks which circuit goes where. While the model trains, TONN switches each kind of circuit off on text it has not trained on and keeps it only if the error goes up. Useless circuits are replaced by new ones, drawn more often from the kinds that have proven useful. Early in training the architecture changes; later it is frozen.
 
 Paper: [TONN: Networks That Build Their Own Architecture from Data](https://www.preprints.org/manuscript/202611.0994) (Avneh Singh Bhatia, Preprints.org, November 2026). It is a concept paper and has not been peer reviewed. Its larger-scale results are mixed, so we test TONN against a plain transformer at equal compute on small models before any large run.
@@ -129,10 +142,10 @@ Small-scale tests on a Mac Studio, all in [results/README.md](results/README.md)
 - **On real text the board helps a little:** 0.006 bits per byte at 5M parameters, against a matched control.
 - **Tokenizer: 32k.** It wins or ties 49k and 64k on English, Japanese and code at a fixed token budget.
 - **Speed:** TONN trains at 1.5x the cost per token of a same-size Llama, 2.7x with retrieval on.
-- **TONN vs Llama on real tokens: Llama is ahead at 13M parameters.** It wins by 0.01-0.03 bits per byte on English and
-  Japanese and by 0.15 on code. TONN's earlier lead was on bytes, English only, at 4.85M. In this test, 2 of TONN's 8
-  circuits per layer (retrieval, board) were idle and the search was off; the fairer follow-up is running. This is the
-  most important open question for the project.
+- **Pure TONN lost to Llama on real tokens; the hybrid wins.** At 13M parameters pure TONN trailed a same-size Llama,
+  mostly on code. TONN layers alternating with attention layers, with a convolution-heavy starting mix, beat Llama on
+  English, Japanese and code with both seeds: 0.023 bits per byte better on average. That is now the default
+  architecture.
 
 ## To-do list
 

@@ -39,7 +39,7 @@ def score(model, batches, ds, dev):
 
 def run(arm, a, dev, train, evals, ds):
     torch.manual_seed(a.seed)
-    cfg = get_config("small", vocab_size=int(train.meta["vocab_size"]), d=a.d, n_layers=a.layers, slots=a.slots,
+    cfg = get_config("small-tonn", vocab_size=int(train.meta["vocab_size"]), d=a.d, n_layers=a.layers, slots=a.slots,
                      h=a.h, chunk=a.chunk, rag_chunk_len=a.chunk, rag_topk=a.topk, enc_dim=a.enc_dim, seed=a.seed)
     model = ExeaLM(cfg).to(dev)
     opt = make_optimizer(model, a.lr, 0.1)

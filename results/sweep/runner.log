@@ -5,3 +5,9 @@
 2026-11-11 02:06:11 START hyb135_s1
 2026-11-11 02:16:56 END hyb135_s1 {"model": "tonn_core", "tag": "hyb135_s1", "cfg": "{\"attn_layers\": [1, 3, 5]}", "lr": 0.002, "seed": 1, "tokenizer": "bpe32k", "vocab": 32768, "params_M": 13.1, "steps": 3000, "tokens_seen": 4915200
 2026-11-11 02:16:56 START hyb135_search
+2026-11-11 02:39:16 END hyb135_search {"model": "tonn_core_search", "tag": "hyb135_search", "cfg": "{\"attn_layers\": [1, 3, 5]}", "lr": 0.002, "seed": 1, "tokenizer": "bpe32k", "vocab": 32768, "params_M": 13.1, "steps": 3000, "tokens_see
+2026-11-11 02:39:16 START hyb135_mem
+2026-11-11 02:49:47 END hyb135_mem {"model": "tonn", "tag": "hyb135_mem", "cfg": "{\"attn_layers\": [1, 3, 5]}", "lr": 0.002, "seed": 0, "tokenizer": "bpe32k", "vocab": 32768, "params_M": 13.31, "steps": 3000, "tokens_seen": 49152000, 
+2026-11-11 02:49:47 START hyb135_conv
+2026-11-11 03:12:07 END hyb135_conv {"model": "tonn_core", "tag": "hyb135_conv", "cfg": "{\"attn_layers\": [1, 3, 5], \"init_weights\": {\"C\": 4, \"G\": 0.25, \"D\": 0.25}}", "lr": 0.002, "seed": 1, "tokenizer": "bpe32k", "vocab": 3276
+2026-11-11 03:12:07 START hyb135_s1_curve

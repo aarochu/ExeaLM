@@ -1,3 +1,6 @@
 hyb135|--root data/tokpack --toks bpe32k --steps 3000 --device mps --seeds 0 --models tonn_core --cfg '{"attn_layers": [1, 3, 5]}'
 rp4|--root data/tokpack --toks bpe32k --steps 3000 --device mps --seeds 0 --models tonn_core --cfg '{"init_weights": {"RP": 4}}'
 hyb135_s1|--root data/tokpack --toks bpe32k --steps 3000 --device mps --seeds 1 --models tonn_core --cfg '{"attn_layers": [1, 3, 5]}'
+hyb135_search|--root data/tokpack --toks bpe32k --steps 3000 --device mps --seeds 0,1 --models tonn_core_search --cfg '{"attn_layers": [1, 3, 5]}'
+hyb135_mem|--root data/tokpack --toks bpe32k --steps 3000 --device mps --seeds 0 --models tonn --cfg '{"attn_layers": [1, 3, 5]}'
+hyb135_conv|--root data/tokpack --toks bpe32k --steps 3000 --device mps --seeds 0,1 --models tonn_core --cfg '{"attn_layers": [1, 3, 5], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}}'

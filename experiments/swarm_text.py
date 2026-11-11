@@ -51,7 +51,7 @@ def run(arm, a, dev, train, evals):
     train_swarm, group, policy = ARMS[arm]
     group = a.swarm if group > 1 else 1
     torch.manual_seed(a.seed)
-    cfg = get_config("small", vocab_size=int(train.meta["vocab_size"]), d=a.d, n_layers=a.layers, slots=a.slots,
+    cfg = get_config("small-tonn", vocab_size=int(train.meta["vocab_size"]), d=a.d, n_layers=a.layers, slots=a.slots,
                      h=a.h, chunk=a.chunk, swarm_size=a.swarm, seed=a.seed)
     model = ExeaLM(cfg).to(dev)
     opt = make_optimizer(model, a.lr, 0.1)

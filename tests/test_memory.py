@@ -91,9 +91,27 @@ def test_swarm_batches_split_and_mix():
     import numpy as np
     from exealm.data.loader import SyntheticShards
     data = SyntheticShards(n_tokens=20_000)
-    x, y, d = data.batch(8, 16, np.random.default_rng(0), swarm_size=4, policy="split")
+    x, y, d = data.batch(8, 16, np.random.default_rng(0), swarm_size=4, policy="split", mask_seams=False)
     for s in range(2):                                    # each swarm reads one stretch of text, in order
         rows = x[4 * s:4 * s + 4]
         assert torch.equal(rows[1:, 0], y[4 * s:4 * s + 3, -1])
+    xm, ym, _ = data.batch(8, 16, np.random.default_rng(0), swarm_size=4, policy="split")
+    assert torch.equal(xm, x)                             # same windows; only the seam targets are hidden
+    seam = torch.zeros(8, 16, dtype=torch.bool)
+    seam[[0, 1, 2, 4, 5, 6], -1] = True
+    assert (ym[seam] == -100).all() and torch.equal(ym[~seam], y[~seam])
     x, y, d = data.batch(8, 16, np.random.default_rng(0), swarm_size=4, policy="mixed")
     assert x.shape == (8, 16) and d.shape == (8, 16)
+    _, y1, _ = data.batch(8, 16, np.random.default_rng(0), swarm_size=1, policy="split")
+    assert (y1 >= 0).all()                                # a lone agent has no seam
+
+
+def test_the_split_seam_target_really_leaks_through_the_board():
+    """Why batch() masks it: agent 0's last prediction changes when agent 1's first token does."""
+    cfg, m, _, _ = setup(swarm_size=2)
+    x = torch.randint(0, cfg.vocab_size, (2, 40))
+    x2 = x.clone()
+    x2[1, 0] = (x2[1, 0] + 1) % cfg.vocab_size
+    with torch.no_grad():
+        a, b = m(x, MemoryContext(swarm_size=2))[0], m(x2, MemoryContext(swarm_size=2))[0]
+    assert not torch.allclose(a[0, -1], b[0, -1])

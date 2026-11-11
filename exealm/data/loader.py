@@ -6,6 +6,10 @@ swarms, and swarms never hear each other. What each swarm reads decides what its
               agent its own part, so posting what you read helps the agents reading the other parts
     "random"  unrelated windows: the board has little to offer, so agents learn when to ignore it and stay quiet
     "mixed"   each swarm is "split" with probability p_split, otherwise "random" (the default)
+
+The seam of a split swarm: agent i's last target is the first token agent i + 1 reads, and from its second chunk on,
+agent i hears agent i + 1's first post, which was made from that token. So that one target could be read off the board.
+batch() sets it to -100 (ignored by the loss) in every split swarm except for the last agent; mask_seams=False keeps it.
   TODO(swarms): "related": documents that are near each other in the model's own retrieval space.
   TODO(swarms): "crosslingual": the same topic in Japanese and English (Wikipedia interlanguage links).
   TODO(swarms): swarm sizes that vary within a run (2 to 8).
@@ -26,15 +30,17 @@ class TokenShards:
     def doc_of(self, pos):
         return np.searchsorted(self.offsets, pos, side="right") - 1
 
-    def batch(self, B, T, rng, swarm_size=1, policy="random", p_split=0.5):
+    def batch(self, B, T, rng, swarm_size=1, policy="random", p_split=0.5, mask_seams=True):
         """x, y (B, T) int64 and doc ids (B, T) int64. rng: a numpy Generator. B must be a multiple of swarm_size
-        for swarm policies to apply."""
+        for swarm policies to apply. y is -100 at the seams of split swarms (see the module docstring)."""
         n = len(self.tokens) - T - 1
+        seams = []                                                       # rows whose last target the next row reads
         if policy in ("split", "mixed") and swarm_size > 1 and B % swarm_size == 0:
             starts = []
             for _ in range(B // swarm_size):
                 if policy == "split" or rng.random() < p_split:
                     s0 = int(rng.integers(0, max(1, n - swarm_size * T)))
+                    seams += [len(starts) + j for j in range(swarm_size - 1)]
                     starts += [s0 + j * T for j in range(swarm_size)]
                 else:
                     starts += list(rng.integers(0, n, size=swarm_size))
@@ -44,7 +50,10 @@ class TokenShards:
         idx = starts[:, None] + np.arange(T + 1)[None]
         win = torch.from_numpy(self.tokens[idx].astype(np.int64))
         docs = torch.from_numpy(self.doc_of(idx[:, :-1]).astype(np.int64))
-        return win[:, :-1], win[:, 1:], docs
+        x, y = win[:, :-1], win[:, 1:].clone()
+        if mask_seams and seams:
+            y[seams, -1] = -100
+        return x, y, docs
 
 
 class SyntheticShards:

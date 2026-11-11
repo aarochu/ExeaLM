@@ -1,8 +1,8 @@
 """Experiment 4: built-in RAG on real text. Does a datastore of training text make the model predict held-out text
 better?
 
-Data: FineWeb-Edu as raw bytes (exealm.data.pack --tokenizer bytes). The datastore is chunks of training documents
-(64 bytes each). It never returns chunks of the document being read; validation documents are not in it at all.
+Data: any packed text (bytes or tokens). The datastore is chunks of the training documents, or of a separate library
+(--store, e.g. Wikipedia); it never returns chunks of the document being read, and validation documents are not in it.
 Arms (same model, seed and steps):
   rag    trained with the datastore attached (re-encoded with the model's own encoder every --refresh_every steps)
   none   trained without a datastore (RG slots output zeros): the control
@@ -83,7 +83,8 @@ def main():
     ap.add_argument("--data", required=True)
     ap.add_argument("--val", required=True)
     ap.add_argument("--arms", default="rag,none")
-    ap.add_argument("--chunks", type=int, default=200_000, help="datastore size (chunks of --chunk bytes)")
+    ap.add_argument("--chunks", type=int, default=200_000, help="datastore size (chunks of --chunk tokens)")
+    ap.add_argument("--store", default=None, help="packed library for the datastore (default: the training data)")
     ap.add_argument("--refresh_every", type=int, default=500)
     ap.add_argument("--steps", type=int, default=4000)
     ap.add_argument("--batch", type=int, default=32)
@@ -105,7 +106,11 @@ def main():
     a = ap.parse_args()
     dev = pick_device(a.device)
     train, val = TokenShards(a.data), TokenShards(a.val)
-    ds = Datastore.from_shards(train, a.chunks, a.chunk, seed=a.seed + 1).to(dev)
+    store = TokenShards(a.store) if a.store else train              # a separate library, or the training text
+    ds = Datastore.from_shards(store, a.chunks, a.chunk, seed=a.seed + 1)
+    if a.store:
+        ds.doc_ids += 2 * 10 ** 9                                     # library documents are never the one being read
+    ds = ds.to(dev)
     erng = np.random.default_rng(10_000)
     evals = [val.batch(a.batch, a.seq, erng) for _ in range(a.eval_batches)]
     os.makedirs(a.out, exist_ok=True)

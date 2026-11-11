@@ -58,8 +58,9 @@ hybrid beat it on every kind of text, with both seeds, at 13M parameters (bits p
 | *27M parameters:* **ExeaLM hybrid (2 seeds)** | **1.412** | **1.483** | **1.371** | **1.702** |
 
 That's small scale and short training. At 6,000 steps the hybrid is still ahead on every kind of text, but by less
-(0.006). After the speed work the hybrid costs 1.13 times a Llama per token. Its lead is larger than what 13% more
-steps would buy Llama, so it probably wins at equal compute too; a measured equal-time comparison is next. Details:
+(0.006). After the speed work the hybrid costs 1.13 times a Llama per token at 0.1B. Given the same training time on
+the same GPU at 27M, each at its best learning rate, the hybrid still wins on every kind of text, narrowly (0.006
+on average, both seeds). Details:
 [results/README.md](results/README.md#8-overnight-sweep-making-tonn-beat-llama-experimentsrun_queuesh-resultssweep).
 
 Nobody picks which circuit goes where. While the model trains, TONN switches each kind of circuit off on text it has not trained on and keeps it only if the error goes up. Useless circuits are replaced by new ones, drawn more often from the kinds that have proven useful. Early in training the architecture changes; later it is frozen.
@@ -199,6 +200,7 @@ Starting points. Almost everything here runs on a laptop or a free Google Colab 
 
 ### Speed (`exealm/model/scan.py`)
 - [ ] Fused Triton kernels for `decay_scan` and `gated_scan` (any NVIDIA GPU works, including a free Colab T4; must also run on AMD MI300X)
+- [ ] A compile-friendly TONN layer: one code path for every circuit type, so `torch.compile` can fuse it (today it gains 8% for the hybrid and 20% for Llama)
 - [ ] One scan call for all running-sum circuits in a layer
 - [ ] Recurrent state cache, so generating a token doesn't re-read the whole context
 - [ ] `torch.compile` support

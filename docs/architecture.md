@@ -12,9 +12,14 @@ the embedding table. The Llama-style baseline with the same width, depth and MLP
 
 ## The hybrid (the default)
 
-The `100m` and `small` presets alternate TONN layers with full attention layers (`attn_layers`, the odd layers), and
-draw TONN's starting circuits with short convolutions 4 times as likely and gated units and delays a quarter as likely
-(`init_weights`). Pure TONN is still available as `100m-tonn` and `small-tonn`.
+In the `100m` and `small` presets every third layer is a TONN layer and the others are full attention layers
+(`attn_layers`). TONN's starting circuits use short convolutions 4 times as often and gated units and delays a quarter
+as often (`init_weights`). Pure TONN is still available as `100m-tonn` and `small-tonn`.
+
+The 2:1 layout came from equal-compute tests:
+- Half attention, half TONN won at equal steps at every size but lost at equal training time at 48M, because TONN
+  layers are slower per step.
+- Two attention layers per TONN layer kept the quality and won at equal training time at 48M too.
 
 Why: on real tokens at 13M parameters pure TONN trailed a same-size Llama, by 0.18 bits per byte on code. Code needs
 exact copying of names, which full attention does well. The hybrid keeps attention for that and lets TONN's

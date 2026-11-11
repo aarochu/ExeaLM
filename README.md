@@ -45,9 +45,10 @@ TONN is a sequence model that builds its own architecture from data. A normal tr
 
 After each TONN layer comes a gated MLP, as in a transformer.
 
-**ExeaLM is a hybrid.** TONN layers alternate with full attention layers (7 of each in the 0.1B model), and TONN's
-starting circuits favour short convolutions. Pure TONN lost to a same-size Llama on real tokens, mostly on code. The
-hybrid beat it on every kind of text, with both seeds, at 13M parameters (bits per byte, lower is better):
+**ExeaLM is a hybrid.** Every third layer is a TONN layer and the others are full attention layers (5 TONN and 9
+attention layers in the 0.1B model), and TONN's starting circuits favour short convolutions. Pure TONN lost to a
+same-size Llama on real tokens, mostly on code. The hybrid beats it, with both seeds, on every kind of text (bits per
+byte, lower is better):
 
 | Model (13M parameters unless marked, 3,000 steps) | English | Japanese wiki | Japanese web | Code |
 |---|---|---|---|---|
@@ -56,12 +57,14 @@ hybrid beat it on every kind of text, with both seeds, at 13M parameters (bits p
 | **ExeaLM hybrid (2 seeds)** | **1.452** | **1.521** | **1.404** | **1.746** |
 | *27M parameters:* Llama (2 seeds) | 1.446 | 1.523 | 1.402 | 1.778 |
 | *27M parameters:* **ExeaLM hybrid (2 seeds)** | **1.412** | **1.483** | **1.371** | **1.702** |
+| *48M, same training time:* Llama (2 seeds) | 1.369 | 1.439 | 1.333 | 1.667 |
+| *48M, same training time:* **ExeaLM hybrid, 2:1 layout (2 seeds)** | **1.366** | **1.436** | **1.327** | **1.653** |
 
 That's small scale and short training. At 6,000 steps the hybrid is still ahead on every kind of text, but by less
 (0.006). After the speed work the hybrid costs 1.13 times a Llama per token at 0.1B. Given the same training time on
-the same GPU, it ties Llama at 13M and wins at 27M (0.006, both seeds), but **loses at 48M** (0.014 with tuned
-learning rates). At 48M it still wins per step (0.013), so the gap is speed: it takes 1.19 times Llama's time per
-step. Faster kernels are what's left. Details:
+the same GPU, it ties Llama at 13M and wins at 27M. At 48M the half-attention layout lost (0.014), but the 2:1 layout
+(two attention layers per TONN layer) **wins at equal compute at 48M: 1.445 vs 1.452, both seeds, every kind of
+text.** That layout is now the default. Details:
 [results/README.md](results/README.md#8-overnight-sweep-making-tonn-beat-llama-experimentsrun_queuesh-resultssweep).
 
 Nobody picks which circuit goes where. While the model trains, TONN switches each kind of circuit off on text it has not trained on and keeps it only if the error goes up. Useless circuits are replaced by new ones, drawn more often from the kinds that have proven useful. Early in training the architecture changes; later it is frozen.
@@ -148,10 +151,10 @@ Small-scale tests on a Mac Studio, all in [results/README.md](results/README.md)
 - **On real text the board helps a little:** 0.006 bits per byte at 5M parameters, against a matched control.
 - **Tokenizer: 32k.** It wins or ties 49k and 64k on English, Japanese and code at a fixed token budget.
 - **Speed:** the hybrid 0.1B model trains at 1.13x the cost per token of a same-size Llama, 1.66x with retrieval on.
-- **Pure TONN lost to Llama on real tokens; the hybrid wins.** At 13M parameters pure TONN trailed a same-size Llama,
-  mostly on code. TONN layers alternating with attention layers, with a convolution-heavy starting mix, beat Llama on
-  English, Japanese and code with both seeds: 0.023 bits per byte better on average. That is now the default
-  architecture.
+- **Pure TONN lost to Llama on real tokens; the hybrid wins.** Pure TONN trailed a same-size Llama, mostly on code. A
+  hybrid (TONN layers among attention layers, convolution-heavy start) beats Llama on English, Japanese and code
+  with both seeds: at equal size and steps (13M, 27M, 48M) and, with two attention layers per TONN layer, at equal
+  training time at 48M (0.007 bits per byte). That is now the default architecture.
 
 ## To-do list
 

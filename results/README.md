@@ -421,11 +421,19 @@ and 9), same 2,000 seconds, seed 0:
 | Llama (1e-3) | 4,183 | 1.370 | 1.439 | 1.332 | 1.668 | 1.452 |
 | Hybrid, 5 + 5 (1.5e-3) | 3,521 | 1.374 | 1.453 | 1.337 | 1.699 | 1.466 |
 
-It beats Llama by 0.007 on every kind of text, at equal compute.
+**Confirmed with seed 1** (averages of both seeds):
+
+| 48M, same 2,000 seconds | English | Japanese wiki | Japanese web | Code | Mean |
+|---|---|---|---|---|---|
+| **Hybrid, 6 attention + 4 TONN** | **1.366** | **1.436** | **1.327** | **1.653** | **1.445** |
+| Llama | 1.369 | 1.439 | 1.333 | 1.667 | 1.452 |
+
+**The hybrid beats Llama at equal compute at 48M**, by 0.006-0.007 on each seed and on every kind of text (most on
+code).
 - **13M:** 4 attention layers of 6 kept the 3+3 hybrid's quality (1.532 vs 1.531) at almost Llama's speed.
-- **So the better layout is about two attention layers for every TONN layer.** Fewer TONN layers make it faster,
-  and the remaining ones still carry the gain.
-- Seed 1 for both is running.
+- **The better layout is about two attention layers for every TONN layer.** Fewer TONN layers make it faster, and
+  the remaining ones still carry the gain.
+- This is now the default: every third layer is TONN (`100m`: TONN at layers 0, 3, 6, 9, 12; `small`: 0, 3).
 
 The honest summary so far: **at equal size and steps the hybrid beats Llama (13M and 27M); at equal compute it ties
 or wins up to 27M and loses at 48M with an untuned learning rate.** Faster TONN kernels would move every
@@ -440,54 +448,56 @@ the compiler recompile and fuse only fragments, so both comparisons here are unc
 | Rank | Run | Model | Config | lr | Seed | English | Japanese wiki | Japanese web | Code | Mean | vs Llama |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | 1 | eqt_big_attn6 | tonn_core | {"attn_layers": [1, 2, 4, 5, 7, 8], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}} | 0.0015 | 0 | 1.365 | 1.435 | 1.327 | 1.655 | 1.445 | -0.084 |
-| 2 | eqt_big_llama | llama |  | 0.001 | 0 | 1.370 | 1.439 | 1.332 | 1.668 | 1.452 | -0.077 |
-| 3 | eqt_big_hybrid_lr15e4 | tonn_core | {"attn_layers": [1, 3, 5, 7, 9], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}} | 0.0015 | 0 | 1.374 | 1.453 | 1.337 | 1.699 | 1.466 | -0.064 |
-| 4 | hconv_6k | tonn_core | {"attn_layers": [1, 3, 5], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}} | 0.002 | 0 | 1.390 | 1.455 | 1.343 | 1.676 | 1.466 | -0.064 |
-| 5 | eqt_big_hybrid | tonn_core | {"attn_layers": [1, 3, 5, 7, 9], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}} | 0.002 | 0 | 1.379 | 1.456 | 1.341 | 1.712 | 1.472 | -0.058 |
-| 6 | llama_6k | llama |  | 0.002 | 0 | 1.395 | 1.459 | 1.348 | 1.686 | 1.472 | -0.058 |
-| 7 | eqt_big_hybrid_lr1e3 | tonn_core | {"attn_layers": [1, 3, 5, 7, 9], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}} | 0.001 | 0 | 1.377 | 1.458 | 1.341 | 1.723 | 1.475 | -0.055 |
-| 8 | mid_hybrid | tonn_core | {"attn_layers": [1, 3, 5, 7], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}} | 0.002 | 1 | 1.413 | 1.481 | 1.368 | 1.702 | 1.491 | -0.039 |
-| 9 | big_hybrid_3k | tonn_core | {"attn_layers": [1, 3, 5, 7, 9], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}} | 0.002 | 0 | 1.395 | 1.477 | 1.360 | 1.735 | 1.492 | -0.038 |
-| 10 | mid_hybrid | tonn_core | {"attn_layers": [1, 3, 5, 7], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}} | 0.002 | 0 | 1.412 | 1.484 | 1.373 | 1.702 | 1.493 | -0.037 |
-| 11 | eqt_mid_hybrid | tonn_core | {"attn_layers": [1, 3, 5, 7], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}} | 0.002 | 1 | 1.415 | 1.486 | 1.373 | 1.701 | 1.494 | -0.036 |
-| 12 | eqt_mid_hybrid | tonn_core | {"attn_layers": [1, 3, 5, 7], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}} | 0.002 | 0 | 1.418 | 1.492 | 1.376 | 1.719 | 1.502 | -0.028 |
-| 13 | eqt_mid_llama | llama |  | 0.001 | 1 | 1.418 | 1.490 | 1.380 | 1.720 | 1.502 | -0.028 |
-| 14 | eqt_mid_llama | llama |  | 0.001 | 0 | 1.417 | 1.494 | 1.379 | 1.730 | 1.505 | -0.025 |
-| 15 | big_llama_3k | llama |  | 0.001 | 0 | 1.417 | 1.496 | 1.381 | 1.727 | 1.505 | -0.025 |
-| 16 | mid_llama_lr1e3 | llama |  | 0.001 | 1 | 1.435 | 1.508 | 1.397 | 1.741 | 1.520 | -0.010 |
-| 17 | eqt_small_llama | llama |  | 0.002 | 0 | 1.440 | 1.511 | 1.394 | 1.745 | 1.522 | -0.007 |
-| 18 | eqt_small_hybrid | tonn_core | {"attn_layers": [1, 3, 5], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}} | 0.002 | 1 | 1.445 | 1.512 | 1.395 | 1.738 | 1.523 | -0.007 |
-| 19 | mid_hybrid_lr1e3 | tonn_core | {"attn_layers": [1, 3, 5, 7], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}} | 0.001 | 0 | 1.426 | 1.512 | 1.390 | 1.768 | 1.524 | -0.006 |
-| 20 | hyb135_search | tonn_core_search | {"attn_layers": [1, 3, 5]} | 0.002 | 0 | 1.448 | 1.517 | 1.400 | 1.734 | 1.525 | -0.005 |
-| 21 | mid_llama_lr1e3 | llama |  | 0.001 | 0 | 1.434 | 1.514 | 1.398 | 1.754 | 1.525 | -0.005 |
-| 22 | hyb135 | tonn_core | {"attn_layers": [1, 3, 5]} | 0.002 | 0 | 1.449 | 1.516 | 1.399 | 1.736 | 1.525 | -0.005 |
-| 23 | hyb135_mem | tonn | {"attn_layers": [1, 3, 5]} | 0.002 | 0 | 1.449 | 1.518 | 1.402 | 1.734 | 1.526 | -0.004 |
-| 24 | hconv_attn4 | tonn_core | {"attn_layers": [1, 2, 4, 5], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}} | 0.002 | 1 | 1.448 | 1.516 | 1.399 | 1.749 | 1.528 | -0.002 |
-| 25 | hconv_search | tonn_core_search | {"attn_layers": [1, 3, 5], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}} | 0.002 | 1 | 1.448 | 1.516 | 1.401 | 1.751 | 1.529 | -0.001 |
-| 26 | hyb135_conv | tonn_core | {"attn_layers": [1, 3, 5], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}} | 0.002 | 1 | 1.451 | 1.519 | 1.402 | 1.748 | 1.530 | +0.000 |
-| 27 | eqt_small_hybrid | tonn_core | {"attn_layers": [1, 3, 5], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}} | 0.002 | 0 | 1.450 | 1.524 | 1.404 | 1.746 | 1.531 | +0.001 |
-| 28 | hconv_search | tonn_core_search | {"attn_layers": [1, 3, 5], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}} | 0.002 | 0 | 1.452 | 1.522 | 1.406 | 1.744 | 1.531 | +0.001 |
-| 29 | hyb135_conv | tonn_core | {"attn_layers": [1, 3, 5], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}} | 0.002 | 0 | 1.452 | 1.523 | 1.406 | 1.745 | 1.532 | +0.002 |
-| 30 | eqt_small_llama | llama |  | 0.002 | 1 | 1.449 | 1.523 | 1.401 | 1.754 | 1.532 | +0.002 |
-| 31 | hconv_attn4 | tonn_core | {"attn_layers": [1, 2, 4, 5], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}} | 0.002 | 0 | 1.453 | 1.527 | 1.407 | 1.760 | 1.537 | +0.007 |
-| 32 | mid_llama | llama |  | 0.002 | 1 | 1.447 | 1.522 | 1.401 | 1.777 | 1.537 | +0.007 |
-| 33 | mid_llama | llama |  | 0.002 | 0 | 1.444 | 1.524 | 1.402 | 1.778 | 1.537 | +0.007 |
-| 34 | hconv_mem | tonn | {"attn_layers": [1, 3, 5], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}} | 0.002 | 0 | 1.456 | 1.532 | 1.410 | 1.764 | 1.540 | +0.011 |
-| 35 | hconv_mem | tonn | {"attn_layers": [1, 3, 5], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}} | 0.002 | 1 | 1.455 | 1.528 | 1.410 | 1.773 | 1.542 | +0.012 |
-| 36 | arch | llama |  | 0.002 | 0 | 1.461 | 1.534 | 1.413 | 1.775 | 1.546 | +0.016 |
-| 37 | llama_lr3e3 | llama |  | 0.003 | 0 | 1.465 | 1.538 | 1.415 | 1.769 | 1.547 | +0.017 |
-| 38 | llama_lr1e3 | llama |  | 0.001 | 0 | 1.468 | 1.548 | 1.425 | 1.776 | 1.554 | +0.025 |
-| 39 | arch | llama |  | 0.002 | 1 | 1.473 | 1.545 | 1.426 | 1.803 | 1.562 | +0.032 |
-| 40 | rp4 | tonn_core | {"init_weights": {"RP": 4}} | 0.002 | 0 | 1.475 | 1.555 | 1.424 | 1.869 | 1.581 | +0.051 |
-| 41 | hyb135_search | tonn_core_search | {"attn_layers": [1, 3, 5]} | 0.002 | 1 | 1.455 | 1.543 | 1.407 | 1.933 | 1.584 | +0.055 |
-| 42 | arch | tonn |  | 0.002 | 1 | 1.475 | 1.559 | 1.421 | 1.906 | 1.590 | +0.061 |
-| 43 | hyb135_s1_curve | tonn_core | {"attn_layers": [1, 3, 5]} | 0.002 | 1 | 1.461 | 1.551 | 1.412 | 1.949 | 1.593 | +0.064 |
-| 44 | hyb135_s1 | tonn_core | {"attn_layers": [1, 3, 5]} | 0.002 | 1 | 1.461 | 1.551 | 1.412 | 1.950 | 1.594 | +0.064 |
-| 45 | arch2 | tonn_core_search |  | 0.002 | 0 | 1.479 | 1.566 | 1.422 | 1.948 | 1.604 | +0.074 |
-| 46 | arch2 | tonn_core |  | 0.002 | 0 | 1.483 | 1.570 | 1.424 | 1.959 | 1.609 | +0.079 |
-| 47 | arch2 | tonn_core_search |  | 0.002 | 1 | 1.474 | 1.562 | 1.417 | 1.993 | 1.611 | +0.082 |
-| 48 | arch2 | tonn_core |  | 0.002 | 1 | 1.477 | 1.567 | 1.419 | 2.000 | 1.616 | +0.086 |
-| 49 | arch | tonn |  | 0.002 | 0 | 1.491 | 1.578 | 1.433 | 1.964 | 1.616 | +0.087 |
+| 2 | eqt_big_attn6_s1 | tonn_core | {"attn_layers": [1, 2, 4, 5, 7, 8], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}} | 0.0015 | 1 | 1.367 | 1.437 | 1.328 | 1.650 | 1.445 | -0.084 |
+| 3 | eqt_big_llama_s1 | llama |  | 0.001 | 1 | 1.369 | 1.439 | 1.333 | 1.665 | 1.451 | -0.078 |
+| 4 | eqt_big_llama | llama |  | 0.001 | 0 | 1.370 | 1.439 | 1.332 | 1.668 | 1.452 | -0.077 |
+| 5 | eqt_big_hybrid_lr15e4 | tonn_core | {"attn_layers": [1, 3, 5, 7, 9], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}} | 0.0015 | 0 | 1.374 | 1.453 | 1.337 | 1.699 | 1.466 | -0.064 |
+| 6 | hconv_6k | tonn_core | {"attn_layers": [1, 3, 5], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}} | 0.002 | 0 | 1.390 | 1.455 | 1.343 | 1.676 | 1.466 | -0.064 |
+| 7 | eqt_big_hybrid | tonn_core | {"attn_layers": [1, 3, 5, 7, 9], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}} | 0.002 | 0 | 1.379 | 1.456 | 1.341 | 1.712 | 1.472 | -0.058 |
+| 8 | llama_6k | llama |  | 0.002 | 0 | 1.395 | 1.459 | 1.348 | 1.686 | 1.472 | -0.058 |
+| 9 | eqt_big_hybrid_lr1e3 | tonn_core | {"attn_layers": [1, 3, 5, 7, 9], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}} | 0.001 | 0 | 1.377 | 1.458 | 1.341 | 1.723 | 1.475 | -0.055 |
+| 10 | mid_hybrid | tonn_core | {"attn_layers": [1, 3, 5, 7], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}} | 0.002 | 1 | 1.413 | 1.481 | 1.368 | 1.702 | 1.491 | -0.039 |
+| 11 | big_hybrid_3k | tonn_core | {"attn_layers": [1, 3, 5, 7, 9], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}} | 0.002 | 0 | 1.395 | 1.477 | 1.360 | 1.735 | 1.492 | -0.038 |
+| 12 | mid_hybrid | tonn_core | {"attn_layers": [1, 3, 5, 7], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}} | 0.002 | 0 | 1.412 | 1.484 | 1.373 | 1.702 | 1.493 | -0.037 |
+| 13 | eqt_mid_hybrid | tonn_core | {"attn_layers": [1, 3, 5, 7], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}} | 0.002 | 1 | 1.415 | 1.486 | 1.373 | 1.701 | 1.494 | -0.036 |
+| 14 | eqt_mid_hybrid | tonn_core | {"attn_layers": [1, 3, 5, 7], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}} | 0.002 | 0 | 1.418 | 1.492 | 1.376 | 1.719 | 1.502 | -0.028 |
+| 15 | eqt_mid_llama | llama |  | 0.001 | 1 | 1.418 | 1.490 | 1.380 | 1.720 | 1.502 | -0.028 |
+| 16 | eqt_mid_llama | llama |  | 0.001 | 0 | 1.417 | 1.494 | 1.379 | 1.730 | 1.505 | -0.025 |
+| 17 | big_llama_3k | llama |  | 0.001 | 0 | 1.417 | 1.496 | 1.381 | 1.727 | 1.505 | -0.025 |
+| 18 | mid_llama_lr1e3 | llama |  | 0.001 | 1 | 1.435 | 1.508 | 1.397 | 1.741 | 1.520 | -0.010 |
+| 19 | eqt_small_llama | llama |  | 0.002 | 0 | 1.440 | 1.511 | 1.394 | 1.745 | 1.522 | -0.007 |
+| 20 | eqt_small_hybrid | tonn_core | {"attn_layers": [1, 3, 5], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}} | 0.002 | 1 | 1.445 | 1.512 | 1.395 | 1.738 | 1.523 | -0.007 |
+| 21 | mid_hybrid_lr1e3 | tonn_core | {"attn_layers": [1, 3, 5, 7], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}} | 0.001 | 0 | 1.426 | 1.512 | 1.390 | 1.768 | 1.524 | -0.006 |
+| 22 | hyb135_search | tonn_core_search | {"attn_layers": [1, 3, 5]} | 0.002 | 0 | 1.448 | 1.517 | 1.400 | 1.734 | 1.525 | -0.005 |
+| 23 | mid_llama_lr1e3 | llama |  | 0.001 | 0 | 1.434 | 1.514 | 1.398 | 1.754 | 1.525 | -0.005 |
+| 24 | hyb135 | tonn_core | {"attn_layers": [1, 3, 5]} | 0.002 | 0 | 1.449 | 1.516 | 1.399 | 1.736 | 1.525 | -0.005 |
+| 25 | hyb135_mem | tonn | {"attn_layers": [1, 3, 5]} | 0.002 | 0 | 1.449 | 1.518 | 1.402 | 1.734 | 1.526 | -0.004 |
+| 26 | hconv_attn4 | tonn_core | {"attn_layers": [1, 2, 4, 5], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}} | 0.002 | 1 | 1.448 | 1.516 | 1.399 | 1.749 | 1.528 | -0.002 |
+| 27 | hconv_search | tonn_core_search | {"attn_layers": [1, 3, 5], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}} | 0.002 | 1 | 1.448 | 1.516 | 1.401 | 1.751 | 1.529 | -0.001 |
+| 28 | hyb135_conv | tonn_core | {"attn_layers": [1, 3, 5], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}} | 0.002 | 1 | 1.451 | 1.519 | 1.402 | 1.748 | 1.530 | +0.000 |
+| 29 | eqt_small_hybrid | tonn_core | {"attn_layers": [1, 3, 5], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}} | 0.002 | 0 | 1.450 | 1.524 | 1.404 | 1.746 | 1.531 | +0.001 |
+| 30 | hconv_search | tonn_core_search | {"attn_layers": [1, 3, 5], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}} | 0.002 | 0 | 1.452 | 1.522 | 1.406 | 1.744 | 1.531 | +0.001 |
+| 31 | hyb135_conv | tonn_core | {"attn_layers": [1, 3, 5], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}} | 0.002 | 0 | 1.452 | 1.523 | 1.406 | 1.745 | 1.532 | +0.002 |
+| 32 | eqt_small_llama | llama |  | 0.002 | 1 | 1.449 | 1.523 | 1.401 | 1.754 | 1.532 | +0.002 |
+| 33 | hconv_attn4 | tonn_core | {"attn_layers": [1, 2, 4, 5], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}} | 0.002 | 0 | 1.453 | 1.527 | 1.407 | 1.760 | 1.537 | +0.007 |
+| 34 | mid_llama | llama |  | 0.002 | 1 | 1.447 | 1.522 | 1.401 | 1.777 | 1.537 | +0.007 |
+| 35 | mid_llama | llama |  | 0.002 | 0 | 1.444 | 1.524 | 1.402 | 1.778 | 1.537 | +0.007 |
+| 36 | hconv_mem | tonn | {"attn_layers": [1, 3, 5], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}} | 0.002 | 0 | 1.456 | 1.532 | 1.410 | 1.764 | 1.540 | +0.011 |
+| 37 | hconv_mem | tonn | {"attn_layers": [1, 3, 5], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}} | 0.002 | 1 | 1.455 | 1.528 | 1.410 | 1.773 | 1.542 | +0.012 |
+| 38 | arch | llama |  | 0.002 | 0 | 1.461 | 1.534 | 1.413 | 1.775 | 1.546 | +0.016 |
+| 39 | llama_lr3e3 | llama |  | 0.003 | 0 | 1.465 | 1.538 | 1.415 | 1.769 | 1.547 | +0.017 |
+| 40 | llama_lr1e3 | llama |  | 0.001 | 0 | 1.468 | 1.548 | 1.425 | 1.776 | 1.554 | +0.025 |
+| 41 | arch | llama |  | 0.002 | 1 | 1.473 | 1.545 | 1.426 | 1.803 | 1.562 | +0.032 |
+| 42 | rp4 | tonn_core | {"init_weights": {"RP": 4}} | 0.002 | 0 | 1.475 | 1.555 | 1.424 | 1.869 | 1.581 | +0.051 |
+| 43 | hyb135_search | tonn_core_search | {"attn_layers": [1, 3, 5]} | 0.002 | 1 | 1.455 | 1.543 | 1.407 | 1.933 | 1.584 | +0.055 |
+| 44 | arch | tonn |  | 0.002 | 1 | 1.475 | 1.559 | 1.421 | 1.906 | 1.590 | +0.061 |
+| 45 | hyb135_s1_curve | tonn_core | {"attn_layers": [1, 3, 5]} | 0.002 | 1 | 1.461 | 1.551 | 1.412 | 1.949 | 1.593 | +0.064 |
+| 46 | hyb135_s1 | tonn_core | {"attn_layers": [1, 3, 5]} | 0.002 | 1 | 1.461 | 1.551 | 1.412 | 1.950 | 1.594 | +0.064 |
+| 47 | arch2 | tonn_core_search |  | 0.002 | 0 | 1.479 | 1.566 | 1.422 | 1.948 | 1.604 | +0.074 |
+| 48 | arch2 | tonn_core |  | 0.002 | 0 | 1.483 | 1.570 | 1.424 | 1.959 | 1.609 | +0.079 |
+| 49 | arch2 | tonn_core_search |  | 0.002 | 1 | 1.474 | 1.562 | 1.417 | 1.993 | 1.611 | +0.082 |
+| 50 | arch2 | tonn_core |  | 0.002 | 1 | 1.477 | 1.567 | 1.419 | 2.000 | 1.616 | +0.086 |
+| 51 | arch | tonn |  | 0.002 | 0 | 1.491 | 1.578 | 1.433 | 1.964 | 1.616 | +0.087 |
 
 Llama baseline (lr 2e-3, 7 seeds): mean 1.530 bits per byte.
 

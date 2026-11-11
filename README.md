@@ -1,52 +1,44 @@
 # ExeaLM
 
-A language model built in the open by high schoolers. Custom architecture, open code, open weights. Run by [Exea Labs](https://exealabs.org).
+An open language model built by high schoolers, run by [Exea Labs](https://exealabs.org). Code and weights are public under Apache 2.0.
 
-**Status:** early. The repo is just getting started, and there are no released weights yet.
+No weights are released yet. We are at the start: the data pipeline, tokenizer, and first architecture experiments are open tasks.
 
 ## Join
 
-Sign up here so we can add you to the contributor list: **https://docs.google.com/forms/d/e/1FAIpQLSdPHVZhuXxBDUf-cJM2zDbj1JZPsduu95Y_kTJ_g4gKAXdDVw/viewform**
+Fill out the sign-up form so we can list you as a contributor: https://docs.google.com/forms/d/e/1FAIpQLSdPHVZhuXxBDUf-cJM2zDbj1JZPsduu95Y_kTJ_g4gKAXdDVw/viewform
 
-The repo is public, so you can open an issue or pull request without signing up. The form just helps us keep a running record of who worked on the project. See [CONTRIBUTING.md](CONTRIBUTING.md) to get started.
+The repo is public, so you can open an issue or pull request without signing up. The form gives us a record of who worked on the project. [CONTRIBUTING.md](CONTRIBUTING.md) explains how to start.
 
-## Links
+## Architecture
 
-- Code: https://github.com/exea-labs/ExeaLM
-- Models: https://huggingface.co/exea-labs/ExeaLM
-- Sign-up form: https://docs.google.com/forms/d/e/1FAIpQLSdPHVZhuXxBDUf-cJM2zDbj1JZPsduu95Y_kTJ_g4gKAXdDVw/viewform
+ExeaLM uses TONN, a sequence model that builds its own architecture from data. It starts from a large random network of small circuits (delays, running sums, products, attention) and keeps a circuit only if switching it off raises the error on data the network has not trained on.
 
-## The plan
+Paper: [TONN: Networks That Build Their Own Architecture from Data](https://www.preprints.org/manuscript/202611.0994) (Avneh Singh Bhatia, Preprints.org, November 2026). It is a concept paper and has not been peer reviewed. Its larger-scale results are mixed, and we test TONN against a plain transformer at equal compute on small models before any large run.
 
-- **Architecture:** custom, designed and validated by contributors. Anything we scale up first has to beat a plain Llama-style baseline at equal compute in small-scale experiments.
-- **Data:** about 2 trillion tokens selected from open corpora, mainly the [NII LLM-jp Corpus v4](https://gitlab.llm-jp.nii.ac.jp/datasets/llm-jp-corpus-v4) and the data released with [K2 Horizon](https://ifm.ai/blog/k2) (Institute of Foundation Models). We document every source, license, and filter.
-- **Training:** one central training run on cloud compute arranged by Exea. Contributors work on data pipelines, architecture experiments, evals, docs, and review.
-- **Release:** code under Apache 2.0, weights and model cards on Hugging Face.
+## Data
+
+About 2 trillion tokens selected from the [NII LLM-jp Corpus v4](https://gitlab.llm-jp.nii.ac.jp/datasets/llm-jp-corpus-v4) and the data released with [K2 Horizon](https://ifm.ai/blog/k2). Every source, license, and filter gets documented.
+
+## Training
+
+One central run on cloud compute arranged by Exea. Contributors work on data pipelines, architecture experiments, evals, docs, and review. Weights will be released at https://huggingface.co/exea-labs/ExeaLM.
 
 ## Roadmap
 
 1. Data pipeline: download, dedupe, filter, and mix
 2. Tokenizer
-3. Architecture experiments at small scale
+3. Small-scale architecture experiments
 4. Evaluation harness
 5. Full training run
 6. Post-training and release
 
-Each phase gets an issue with an owner. Check the [issues](https://github.com/exea-labs/ExeaLM/issues) for open tasks.
-
-## Ways to contribute
-
-- Data curation and filtering
-- Model architecture and research
-- Training and infrastructure
-- Evaluation and benchmarks
-- Documentation and writing
-- Community and outreach
+Each phase gets an issue with an owner. Open tasks are in [issues](https://github.com/exea-labs/ExeaLM/issues). We need people on data curation, architecture research, training infrastructure, evals, docs, and community.
 
 ## Community
 
-Please read our [Code of Conduct](CODE_OF_CONDUCT.md). Contributors are listed in [CONTRIBUTORS.md](CONTRIBUTORS.md).
+Read the [Code of Conduct](CODE_OF_CONDUCT.md) before contributing. Contributors are listed in [CONTRIBUTORS.md](CONTRIBUTORS.md).
 
 ## License
 
-Apache License 2.0. See [LICENSE](LICENSE).
+Apache 2.0. See [LICENSE](LICENSE).

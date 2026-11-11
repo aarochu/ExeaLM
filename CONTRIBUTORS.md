@@ -1,6 +1,6 @@
 # Contributors
 
-People who have worked on ExeaLM. After your first merged contribution, add yourself in a pull request. Only add what you are comfortable making public.
+People who have worked on ExeaLM. After your first merged contribution, add yourself in a pull request, listing only what you are comfortable making public.
 
 ## Maintainers
 

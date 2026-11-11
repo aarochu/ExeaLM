@@ -26,6 +26,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from exealm import Datastore, ExeaLM, MemoryContext, count_params, get_config  # noqa: E402
 from exealm.config import HYBRID  # noqa: E402
 from exealm.data.loader import TokenShards  # noqa: E402
+from exealm.model.retrieval import neighbour_loss  # noqa: E402
 from exealm.train.pretrain import lr_at, make_optimizer, pick_device  # noqa: E402
 
 TEXT_DOC_OFFSET = 10 ** 9                # second halves get different document ids from their first halves
@@ -71,6 +72,22 @@ def text_batch(arts, B, T, rng):
 
 
 @torch.no_grad()
+def hit_rate(model, batches, ds, chunk, dev, k=4):
+    """How often the search, with the encoder's own key for the chunk just read, returns a chunk of the same
+    article's first half among its top k (what retrieval needs to find to help)."""
+    hits = n = 0
+    for x, _, d in batches:
+        B, T = x.shape
+        m = T // chunk
+        keys = model.encoder(x[:, :m * chunk].reshape(B * m, chunk).to(dev), model.emb)[1]
+        idx, _ = ds.search(keys, k)
+        art = (d[:, 0] - TEXT_DOC_OFFSET).to(dev).repeat_interleave(m)
+        hits += int((ds.doc_ids[idx] == art.view(-1, 1)).any(1).sum())
+        n += len(art)
+    return round(hits / max(1, n), 4)
+
+
+@torch.no_grad()
 def score(model, batches, ds, dev):
     model.eval()
     nll = 0.0
@@ -100,6 +117,8 @@ def run(arm, a, dev, train_arts, evals, lib_train, lib_eval, V):
         x, y, d = text_batch(train_arts, a.batch, a.seq, rng)
         mem = MemoryContext(datastore=use, doc_ids=d.to(dev)) if use is not None else MemoryContext()
         loss = model(x.to(dev), mem, y.to(dev))[1]
+        if a.neighbour and arm == "rag":                # train the search: a chunk should find its neighbour
+            loss = loss + a.neighbour * neighbour_loss(model, x.to(dev), a.chunk)
         opt.zero_grad(set_to_none=True)
         loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
@@ -109,7 +128,8 @@ def run(arm, a, dev, train_arts, evals, lib_train, lib_eval, V):
         if (step + 1) % a.eval_every == 0 or step + 1 == a.steps:
             lib_eval.refresh(model.encoder, model.emb, step=step)
             rec = dict(arm=arm, step=step + 1, secs=round(time.time() - t0, 1),
-                       attached=score(model, evals, lib_eval, dev), removed=score(model, evals, None, dev))
+                       attached=score(model, evals, lib_eval, dev), removed=score(model, evals, None, dev),
+                       same_article_hits=hit_rate(model, evals, lib_eval, a.chunk, dev))
             rec["retrieval_gain"] = round(rec["removed"] - rec["attached"], 4)
             curve.append(rec)
             print(json.dumps(rec), flush=True)
@@ -131,6 +151,8 @@ def main():
     ap.add_argument("--eval_every", type=int, default=1000)
     ap.add_argument("--eval_batches", type=int, default=16)
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--neighbour", type=float, default=0.0, help="weight of the encoder's neighbour-finding loss")
+    ap.add_argument("--tag", default="")
     ap.add_argument("--device", default="auto")
     ap.add_argument("--out", default="results/rag_wiki_split")
     a = ap.parse_args()
@@ -143,7 +165,7 @@ def main():
     print(json.dumps(dict(train_articles=len(train_arts), eval_articles=len(eval_arts), library_train=len(lib_train),
                           library_eval=len(lib_eval))), flush=True)
     os.makedirs(a.out, exist_ok=True)
-    path = os.path.join(a.out, f"rag_wiki_split_seed{a.seed}.json")
+    path = os.path.join(a.out, f"rag_wiki_split{('_' + a.tag) if a.tag else ''}_seed{a.seed}.json")
     runs = []
     for arm in a.arms.split(","):
         runs.append(run(arm, a, dev, train_arts, evals, lib_train, lib_eval, int(shards.meta["vocab_size"])))

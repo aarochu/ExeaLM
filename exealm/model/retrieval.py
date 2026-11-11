@@ -137,3 +137,19 @@ class RetrievalCircuit(nn.Module):
         # changes with the reading token, and it scrambled the retrieved value (a linear probe recovered it 68% of
         # the time before the gate and 2.5% after it), so retrieval never learned. Stream C is unused for now.
         return y.to(A.dtype)
+
+
+def neighbour_loss(model, tokens, chunk, tau=10.0):
+    """Self-supervised training for the model's own retrieval encoder (the inverse-cloze idea REALM used to start its
+    retriever): each chunk of a training window should find the NEXT chunk of the same window among every next-chunk in
+    the batch. Without it, the encoder learns only through the language-model loss, which on real text was too weak for
+    the search to find related text (results/README.md, section 6). tokens (B, T); returns a scalar loss."""
+    B, T = tokens.shape
+    n = T // chunk
+    if model.encoder is None or n < 2:
+        return tokens.new_zeros((), dtype=torch.float32)
+    keys = model.encoder(tokens[:, :n * chunk].reshape(B * n, chunk), model.emb)[1].view(B, n, -1)
+    q = keys[:, :-1].reshape(-1, keys.shape[-1])                    # chunk i
+    k = keys[:, 1:].reshape(-1, keys.shape[-1])                     # chunk i + 1 (its positive)
+    logits = tau * q @ k.T
+    return F.cross_entropy(logits.float(), torch.arange(len(q), device=tokens.device))

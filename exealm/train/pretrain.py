@@ -20,7 +20,7 @@ import json
 import math
 import os
 import time
-from dataclasses import asdict
+from dataclasses import asdict, replace
 
 import numpy as np
 import torch
@@ -140,13 +140,22 @@ def main(argv=None):
 
     @torch.no_grad()
     def evaluate():
+        """Validation bits. For swarms, also with the board cut (every agent alone): the difference is what the
+        agents gained from each other."""
         model.eval()
+        bpt = float(data.meta.get("bytes_per_token", 1.0))
         with torch.autocast(**amp) if amp else torch.no_grad():
             loss = sum(float(model(x, m, y)[1]) for x, y, m in val_batches) / len(val_batches)
+            cut = None
+            if swarm > 1:
+                cut = sum(float(model(x, replace(m, swarm_size=1), y)[1]) for x, y, m in val_batches) / len(val_batches)
         model.train()
         bits = loss / math.log(2)
-        return dict(val_bits_per_token=round(bits, 4),
-                    val_bits_per_byte=round(bits / float(data.meta.get("bytes_per_token", 1.0)), 4))
+        out = dict(val_bits_per_token=round(bits, 4), val_bits_per_byte=round(bits / bpt, 4))
+        if cut is not None:
+            out["val_bits_per_token_board_cut"] = round(cut / math.log(2), 4)
+            out["board_gain_bits_per_token"] = round((cut - loss) / math.log(2), 4)
+        return out
 
     os.makedirs(a.out, exist_ok=True)
     log = open(os.path.join(a.out, "log.jsonl"), "a")

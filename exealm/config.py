@@ -35,6 +35,7 @@ class ModelConfig:
     rag_topk: int = 4                # datastore chunks each retrieval returns
     rag_chunk_len: int = 64          # tokens per stored datastore chunk
     enc_dim: int = 256               # width of the model's own chunk encoder (its retrieval embedding model)
+    rag_query: str = "last"          # RG query from the previous chunk's "last" position or its "mean"
     swarm_size: int = 4              # agents that share one board (a swarm); a training batch holds many swarms
     board_read_self: bool = True     # may an agent read its own earlier posts?
 

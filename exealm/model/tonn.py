@@ -117,7 +117,7 @@ class TONNLayer(nn.Module):
         for t, (idx, lags) in self.groups(x.device).items():
             S = [u[:, :, idx, j] for j in range(3)]
             if t == "RG":
-                y = self.rg(S, mem)
+                y = self.rg(S, mem, self, idx)
             elif t == "AG":
                 y = self.ag(S, mem, self.index, idx.tolist())
             else:
@@ -165,7 +165,7 @@ class ExeaLM(nn.Module):
         """idx (B, T) token ids. Returns (logits (B, T, V), loss or None)."""
         if mem is None:
             mem = MemoryContext()
-        mem = replace(mem, encoder=self.encoder, emb=self.emb)
+        mem = replace(mem, encoder=self.encoder, emb=self.emb, tokens=idx, cache={})
         x = self.emb(idx)
         for i, lay in enumerate(self.layers):
             x = lay(x, mem)

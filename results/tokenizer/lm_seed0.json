@@ -1,0 +1,63 @@
+{
+ "args": {
+  "root": "data/tokpack",
+  "toks": "bpe32k,bpe48k,bpe64k",
+  "mix": "0.5,0.3,0.2",
+  "steps": 3000,
+  "batch": 32,
+  "seq": 512,
+  "lr": 0.002,
+  "eval_batches": 16,
+  "seed": 0,
+  "device": "mps",
+  "out": "results/tokenizer"
+ },
+ "device": "mps",
+ "rows": [
+  {
+   "tokenizer": "bpe32k",
+   "vocab": 32768,
+   "params_M": 13.3,
+   "steps": 3000,
+   "tokens_seen": 49152000,
+   "bytes_seen": 193458598,
+   "secs": 806.0,
+   "bits_per_byte": {
+    "en": 1.4893,
+    "ja_wiki": 1.5753,
+    "ja_web": 1.4329,
+    "code": 1.949
+   }
+  },
+  {
+   "tokenizer": "bpe48k",
+   "vocab": 49152,
+   "params_M": 17.49,
+   "steps": 3000,
+   "tokens_seen": 49152000,
+   "bytes_seen": 202038703,
+   "secs": 971.3,
+   "bits_per_byte": {
+    "en": 1.4843,
+    "ja_wiki": 1.5857,
+    "ja_web": 1.4339,
+    "code": 1.9823
+   }
+  },
+  {
+   "tokenizer": "bpe64k",
+   "vocab": 65536,
+   "params_M": 21.69,
+   "steps": 3000,
+   "tokens_seen": 49152000,
+   "bytes_seen": 207500353,
+   "secs": 1117.1,
+   "bits_per_byte": {
+    "en": 1.4869,
+    "ja_wiki": 1.6128,
+    "ja_web": 1.4459,
+    "code": 2.0621
+   }
+  }
+ ]
+}

@@ -118,12 +118,30 @@ There are two candidate 100B-token mixes: DATA.md's (English-heavier) and mix pr
   4. **swarm SFT and swarm RL**: swarms share a board and are trained and rewarded together. This is where the AG circuits really learn to talk.
 - **Compute:** one central run on cloud compute arranged by Exea. You don't need a GPU to contribute. Weights will be released at https://huggingface.co/exea-labs/ExeaLM.
 
+## Results so far
+
+Small-scale tests on a Mac Studio, all in [results/README.md](results/README.md):
+- **Agents learn to talk.** Facts held by one agent reach another only through the board: 99.8% correct with the board,
+  1.5% (chance) without, 3 seeds. With 4 agents, one gathers facts from the other three.
+- **The model builds its own RAG.** On facts that change every step, it finds the right one among 1,024 it has never
+  seen: 100% correct with its datastore, 1.5% (chance) without. It learns its own embeddings, queries and reading.
+  The first design never learned; the report says what broke and why.
+- **On real text the board helps a little:** 0.006 bits per byte at 5M parameters, against a matched control.
+- **Tokenizer: 32k.** It wins or ties 49k and 64k on English, Japanese and code at a fixed token budget.
+- **Speed:** TONN trains at 1.5x the cost per token of a same-size Llama, 2.7x with retrieval on.
+- **TONN vs Llama on real tokens: Llama is ahead at 13M parameters.** It wins by 0.01-0.03 bits per byte on English and
+  Japanese and by 0.15 on code. TONN's earlier lead was on bytes, English only, at 4.85M. In this test, 2 of TONN's 8
+  circuits per layer (retrieval, board) were idle and the search was off; the fairer follow-up is running. This is the
+  most important open question for the project.
+
 ## To-do list
 
 Starting points. Almost everything here runs on a laptop or a free Google Colab GPU, using the `tiny` preset or the 17M-parameter `small` preset. Items marked **(starter)** are good first tasks. Items marked **(GPU)** need bigger GPUs: maintainers run those on Exea's compute, and you can still write and test the code on a small model. To claim an item, say so in #exealm or open a draft pull request. Anything that changes the model or the training has to win a fair small-scale comparison first ([CONTRIBUTING.md](CONTRIBUTING.md)).
 
 ### Swarms and agents (`exealm/model/board.py`, `exealm/data/loader.py`, [docs/swarms.md](docs/swarms.md))
-- [ ] First experiment: does a split swarm predict its text better than solo agents reading the same text? (`small` preset)
+- [x] Proof of mechanism: agents learn to pass facts over the board during training, 99.8% vs 1.5% with the board cut ([results](results/README.md#1-agents-learn-to-talk-through-the-board-during-training-experimentsswarm_relaypy))
+- [x] First real-text experiment: split swarms beat a matched control by 0.006 bits per byte at 5M parameters; split batches cost 0.021 ([results](results/README.md#2-swarms-on-real-text-experimentsswarm_textpy))
+- [ ] Swarm batches that keep as many independent stretches of text as solo batches (the 0.021 cost above)
 - [ ] (starter) Measure board use during training: AG worth in the search log, how often agents read nothing, post strength
 - [ ] Related swarms: group documents that are near each other in the model's own retrieval space
 - [ ] Cross-lingual swarms: pair Japanese and English Wikipedia articles on the same topic (interlanguage links)
@@ -152,7 +170,8 @@ Starting points. Almost everything here runs on a laptop or a free Google Colab 
 - [ ] Swap the datastore at inference: can the model use new facts without retraining?
 
 ### Architecture (`exealm/model/`)
-- [ ] TONN vs Llama with the `small` preset on real tokens, two seeds each (a free Colab GPU is enough)
+- [x] TONN vs Llama with the `small` preset on real tokens, two seeds each: Llama ahead, most of all on code ([results](results/README.md#7-tonn-vs-llama-on-real-tokens-experimentstokenizer_lmpy---models-))
+- [ ] Close the gap: TONN without idle memory circuits, with the search, with more attention-like circuits (running)
 - [ ] Ablations at `small` size: with and without RG, AG and swarms
 - [ ] New circuit types, for example a gated delta-rule memory or sliding-window attention
 - [ ] Shape sweep at fixed parameters: depth, width, slots per layer, channels per slot
@@ -166,7 +185,8 @@ Starting points. Almost everything here runs on a laptop or a free Google Colab 
 - [ ] One scan call for all running-sum circuits in a layer
 - [ ] Recurrent state cache, so generating a token doesn't re-read the whole context
 - [ ] `torch.compile` support
-- [ ] (starter) Benchmark script: training and generation tokens per second, TONN vs Llama
+- [x] Training-speed benchmark: TONN 1.5x a same-size Llama per token, 2.7x with retrieval on ([results](results/README.md#5-speed-of-the-real-model-experimentsspeedpy), `experiments/speed.py`)
+- [ ] (starter) Add generation speed to `experiments/speed.py`
 - [ ] (GPU) Run the tests and a short training run on an MI300X and report what breaks
 
 ### Data ([DATA.md](DATA.md), `exealm/data/`)
@@ -178,12 +198,12 @@ Starting points. Almost everything here runs on a laptop or a free Google Colab 
 - [ ] Filter personal data and toxicity
 - [ ] Quality classifier for Japanese web text (small classifier, Colab-sized)
 - [ ] Mix ablations: three or four versions of the mix with the `small` preset; the best two get confirmed at 0.1B **(GPU)**
-- [ ] Streaming loader with per-source weights
+- [ ] Streaming loader with per-source weights over many shard files (`MultiShards` in `loader.py` mixes one file per source)
 - [ ] (starter) Data card: every source, license, filter and token count
 
 ### Tokenizer (`exealm/data/tokenizer.py`)
-- [ ] Train 32k, 49k and 64k candidates; compare bytes per token on English, Japanese and code (CPU)
-- [ ] Pick by `small`-preset loss and publish on Hugging Face
+- [x] Train 32k, 49k and 64k candidates and compare them by bytes per token and small-model loss: 32k wins or ties ([results](results/README.md#4-tokenizer-size-experimentstokenizer_comparepy-experimentstokenizer_lmpy))
+- [ ] Re-check 32k against 49k on a bigger model, then publish the tokenizer on Hugging Face
 - [ ] Final special tokens: chat roles, agent roles, board
 
 ### Training (`exealm/train/pretrain.py`)
@@ -239,6 +259,9 @@ exealm/
   train/                 pretrain, sft, dpo, grpo
   eval/                  evaluation plan
 docs/                    architecture, memory (RAG + agents), swarms, data, training, ideas
+experiments/             one script per experiment (swarm relay, swarms on text, RAG lookup, RAG on text,
+                         tokenizer, TONN vs Llama, speed)
+results/                 what they found: results/README.md, plus the raw JSON and logs
 tests/                   run with pytest
 ```
 

@@ -5,9 +5,9 @@ import torch
 from exealm import AgentBoard, Datastore, ExeaLM, MemoryContext, get_config
 
 
-def setup(swarm_size=1, B=2, T=40, seed=0):
+def setup(swarm_size=1, B=2, T=40, seed=0, **kw):
     torch.manual_seed(seed)
-    cfg = get_config("tiny", swarm_size=swarm_size)
+    cfg = get_config("tiny", swarm_size=swarm_size, **kw)
     m = ExeaLM(cfg)
     ds = Datastore(torch.randint(0, cfg.vocab_size, (50, cfg.rag_chunk_len)), torch.arange(50) % 7)
     ds.refresh(m.encoder, m.emb)
@@ -20,8 +20,12 @@ def setup(swarm_size=1, B=2, T=40, seed=0):
     return cfg, m, x, mem
 
 
-def test_retrieval_and_board_are_causal_for_one_agent():
-    cfg, m, x, mem = setup()
+import pytest  # noqa: E402
+
+
+@pytest.mark.parametrize("query", ["last", "mean"])
+def test_retrieval_and_board_are_causal_for_one_agent(query):
+    cfg, m, x, mem = setup(rag_query=query)
     t = 21
     x2 = x.clone()
     x2[0, t] = (x2[0, t] + 1) % cfg.vocab_size
@@ -67,7 +71,7 @@ def test_gradients_reach_the_models_own_retrieval_encoder():
     m.train()
     m(x, mem, x)[1].backward()
     assert m.encoder.key.weight.grad is not None and m.encoder.key.weight.grad.abs().sum() > 0
-    assert m.layers[0].rg.kv.weight.grad.abs().sum() > 0
+    assert m.layers[0].rg.alpha.grad is not None and m.layers[0].inp.weight.grad.abs().sum() > 0
 
 
 def test_persistent_board_shares_messages_between_agents():

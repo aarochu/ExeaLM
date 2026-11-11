@@ -4,17 +4,20 @@ The planned data for ExeaLM: how many tokens we train on and why, the pretrainin
 
 ## How many tokens, and why
 
-We train on about **100 billion tokens**, for a model of roughly 1 billion parameters. The number comes from our compute budget, not from how much data exists.
+We train on about **100 billion tokens**, for a model of roughly 1 billion parameters.
 
-1. **Budget.** Exea has about 850 MI300X GPU-hours of AMD Developer Cloud credits (as of July 2026).
-2. **Cost per token.** Training compute is about 6 x parameters x tokens ([Kaplan et al., 2020](https://arxiv.org/abs/2001.08361)). We assume about 300 TFLOPs sustained per MI300X, roughly 23% of its bf16 peak. For a 1B model that is about 180 million tokens per GPU-hour.
-3. **What is left for the main run.** We reserve about 150 GPU-hours for ablations, evals, and restarts. A 100M-parameter ablation on 20B tokens costs about 11 GPU-hours per run. That leaves about 700 GPU-hours, which is about 126B tokens.
-4. **Rounded down.** We plan 100B tokens to leave a margin.
-5. **Sanity check.** The compute-optimal ratio is about 20 tokens per parameter ([Hoffmann et al., 2022](https://arxiv.org/abs/2203.15556)). 100B tokens on 1B parameters is 100 tokens per parameter, five times that. Small models are trained past the optimum on purpose, because they are cheaper to run afterward. Llama 3 8B saw 15T tokens, about 1,900 tokens per parameter.
+**Why 100 billion.** Extra tokens help less and less. Using the loss fit from [Hoffmann et al., 2022](https://arxiv.org/abs/2203.15556), the predicted loss for a 1B-parameter model drops by about 0.19 going from 20B to 100B tokens, by about 0.06 from 100B to 200B, and by about 0.05 from 200B to 400B. Past roughly 200B tokens, each doubling buys little, and the effort is better spent on the data mix and on evals. The fit comes from standard transformers, so we treat these numbers as a guide and check the curve on TONN with small runs.
 
-**Why not 2 trillion.** A 1B model on 2T tokens needs about 11,000 GPU-hours, about 13 times our budget. We pick the 100B tokens from roughly 40T available, so nothing needs to be repeated.
+100B tokens on 1B parameters is 100 tokens per parameter, five times the compute-optimal ratio of about 20. Small models are trained past that ratio on purpose, because they are cheaper to run afterward.
 
-**If the numbers change.** Tokens scale linearly with GPU-hours. Two assumptions are unmeasured: the credit balance and TONN's real training throughput. We will update this page after the first ablation runs.
+**How long it takes.** Training compute is about 6 x parameters x tokens ([Kaplan et al., 2020](https://arxiv.org/abs/2001.08361)). At about 300 TFLOPs sustained per MI300X:
+
+- 1B parameters on 100B tokens: about 560 GPU-hours, which is about 3 days on 8 GPUs (about 23 days on one).
+- 100M parameters on 100B tokens: about 56 GPU-hours, which is about 7 hours on 8 GPUs.
+
+Plan for 30% to 100% more wall-clock time for restarts, evals, and data loading. TONN's real throughput is unmeasured, so we will update these numbers after the first small runs.
+
+We select the 100B tokens from roughly 40T available, so nothing needs to be repeated.
 
 ## Pretraining mix (100B tokens)
 

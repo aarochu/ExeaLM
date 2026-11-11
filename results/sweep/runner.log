@@ -21,3 +21,7 @@
 2026-11-11 04:31:39 START llama_6k
 2026-11-11 04:49:01 END llama_6k {"model": "llama", "tag": "llama_6k", "cfg": "{}", "lr": 0.002, "seed": 0, "tokenizer": "bpe32k", "vocab": 32768, "params_M": 13.1, "steps": 6000, "tokens_seen": 98304000, "bytes_seen": 386917197, "se
 2026-11-11 04:49:01 START mid_hybrid
+2026-11-11 05:29:51 END mid_hybrid {"model": "tonn_core", "tag": "mid_hybrid", "cfg": "{\"attn_layers\": [1, 3, 5, 7], \"init_weights\": {\"C\": 4, \"G\": 0.25, \"D\": 0.25}}", "lr": 0.002, "seed": 1, "tokenizer": "bpe32k", "vocab": 32
+2026-11-11 05:29:51 START mid_llama
+2026-11-11 05:59:58 END mid_llama {"model": "llama", "tag": "mid_llama", "cfg": "{}", "lr": 0.002, "seed": 1, "tokenizer": "bpe32k", "vocab": 32768, "params_M": 26.75, "steps": 3000, "tokens_seen": 49152000, "bytes_seen": 193458598, "
+2026-11-11 05:59:58 START speed_hybrid

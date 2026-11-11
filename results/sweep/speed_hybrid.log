@@ -1,0 +1,1 @@
+{"name": "llama", "params_M": 100.2, "batch": 8, "seq": 2048, "secs_per_step": 1.362, "tokens_per_sec": 12026}

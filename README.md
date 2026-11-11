@@ -49,11 +49,13 @@ After each TONN layer comes a gated MLP, as in a transformer.
 starting circuits favour short convolutions. Pure TONN lost to a same-size Llama on real tokens, mostly on code. The
 hybrid beat it on every kind of text, with both seeds, at 13M parameters (bits per byte, lower is better):
 
-| Model (13M parameters, 3,000 steps) | English | Japanese wiki | Japanese web | Code |
+| Model (13M parameters unless marked, 3,000 steps) | English | Japanese wiki | Japanese web | Code |
 |---|---|---|---|---|
 | Llama-style transformer (2 seeds) | 1.467 | 1.540 | 1.420 | 1.789 |
 | Pure TONN (2 seeds) | 1.480 | 1.568 | 1.422 | 1.979 |
 | **ExeaLM hybrid (2 seeds)** | **1.452** | **1.521** | **1.404** | **1.746** |
+| *27M parameters:* Llama (2 seeds) | 1.446 | 1.523 | 1.402 | 1.778 |
+| *27M parameters:* **ExeaLM hybrid (2 seeds)** | **1.412** | **1.483** | **1.371** | **1.702** |
 
 That's small scale and short training. At 6,000 steps the hybrid is still ahead on every kind of text, but by less
 (0.006). Llama also trains 1.3 times faster per step on our hardware, so **at equal compute the hybrid doesn't win

@@ -20,3 +20,5 @@ llama_lr1e3|--root data/tokpack --toks bpe32k --steps 3000 --device mps --seeds 
 llama_lr3e3|--root data/tokpack --toks bpe32k --steps 3000 --device mps --seeds 0 --models llama --lr 3e-3
 eqt_small_hybrid|--root data/tokpack --toks bpe32k --device mps --steps 3000 --seeds 0,1 --seconds 600 --models tonn_core --cfg '{"attn_layers": [1, 3, 5], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}}'
 eqt_small_llama|--root data/tokpack --toks bpe32k --device mps --steps 3000 --seeds 0,1 --seconds 600 --models llama
+eqt_big_hybrid|--root data/tokpack --toks bpe32k --device mps --steps 3000 --seeds 0 --seconds 2000 --models tonn_core --size '{"d": 512, "n_layers": 10, "slots": 16, "h": 32}' --cfg '{"attn_layers": [1, 3, 5, 7, 9], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}}'
+eqt_big_llama|--root data/tokpack --toks bpe32k --device mps --steps 3000 --seeds 0 --seconds 2000 --lr 1e-3 --models llama --size '{"d": 512, "n_layers": 10, "slots": 16, "h": 32}'

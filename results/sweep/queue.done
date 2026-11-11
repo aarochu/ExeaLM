@@ -1,0 +1,3 @@
+hyb135|--root data/tokpack --toks bpe32k --steps 3000 --device mps --seeds 0 --models tonn_core --cfg '{"attn_layers": [1, 3, 5]}'
+rp4|--root data/tokpack --toks bpe32k --steps 3000 --device mps --seeds 0 --models tonn_core --cfg '{"init_weights": {"RP": 4}}'
+hyb135_s1|--root data/tokpack --toks bpe32k --steps 3000 --device mps --seeds 1 --models tonn_core --cfg '{"attn_layers": [1, 3, 5]}'

@@ -1,0 +1,13 @@
+hyb135_mem|--root data/tokpack --toks bpe32k --steps 3000 --device mps --seeds 0 --models tonn --cfg '{"attn_layers": [1, 3, 5]}'
+hyb135_conv|--root data/tokpack --toks bpe32k --steps 3000 --device mps --seeds 0,1 --models tonn_core --cfg '{"attn_layers": [1, 3, 5], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}}'
+ragtext_v2|experiments/rag_text.py --data data/bytes/train --val data/bytes/val --chunks 200000 --steps 4000 --arms rag --device mps --out results/rag_text_v2
+core_lr1e3|--root data/tokpack --toks bpe32k --steps 3000 --device mps --seeds 0 --models tonn_core --lr 1e-3
+core_lr3e3|--root data/tokpack --toks bpe32k --steps 3000 --device mps --seeds 0 --models tonn_core --lr 3e-3
+llama_lr1e3|--root data/tokpack --toks bpe32k --steps 3000 --device mps --seeds 0 --models llama --lr 1e-3
+llama_lr3e3|--root data/tokpack --toks bpe32k --steps 3000 --device mps --seeds 0 --models llama --lr 3e-3
+k16h16|--root data/tokpack --toks bpe32k --steps 3000 --device mps --seeds 0 --models tonn_core --cfg '{"slots": 16, "h": 16}'
+hyb25|--root data/tokpack --toks bpe32k --steps 3000 --device mps --seeds 0 --models tonn_core --cfg '{"attn_layers": [2, 5]}'
+rp3sm3|--root data/tokpack --toks bpe32k --steps 3000 --device mps --seeds 0 --models tonn_core --cfg '{"init_weights": {"RP": 3, "SM": 3}}'
+rp_pin4|--root data/tokpack --toks bpe32k --steps 3000 --device mps --seeds 0 --models tonn_core --cfg '{"pinned": {"RP": 4}}'
+rp_pin4_search|--root data/tokpack --toks bpe32k --steps 3000 --device mps --seeds 0 --models tonn_core_search --cfg '{"pinned": {"RP": 4}}'
+h64_rp2|--root data/tokpack --toks bpe32k --steps 3000 --device mps --seeds 0 --models tonn_core --cfg '{"slots": 4, "h": 64, "pinned": {"RP": 2}}'

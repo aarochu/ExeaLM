@@ -244,3 +244,38 @@ Llama baseline (lr 2e-3, 2 seeds): mean 1.554 bits per byte.
   TONN layer has on average less than one 32-channel attention circuit.
 - The overnight sweep tests this: attention-heavy starting mixes, pinned attention circuits, 64-channel circuits,
   hybrid layers, learning rates. Results land in `results/sweep/`.
+
+## 8. Overnight sweep: making TONN beat Llama (`experiments/run_queue.sh`, `results/sweep/`)
+
+**IN PROGRESS.** Same setup as section 7, one idea at a time, each run with the same data and steps. The full
+leaderboard as of now (all runs so far):
+
+| Rank | Run | Model | Config | lr | Seed | English | Japanese wiki | Japanese web | Code | Mean | vs Llama |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | hyb135_search | tonn_core_search | {"attn_layers": [1, 3, 5]} | 0.002 | 0 | 1.448 | 1.517 | 1.400 | 1.734 | 1.525 | -0.029 |
+| 2 | hyb135 | tonn_core | {"attn_layers": [1, 3, 5]} | 0.002 | 0 | 1.449 | 1.516 | 1.399 | 1.736 | 1.525 | -0.029 |
+| 3 | arch | llama |  | 0.002 | 0 | 1.461 | 1.534 | 1.413 | 1.775 | 1.546 | -0.008 |
+| 4 | arch | llama |  | 0.002 | 1 | 1.473 | 1.545 | 1.426 | 1.803 | 1.562 | +0.008 |
+| 5 | rp4 | tonn_core | {"init_weights": {"RP": 4}} | 0.002 | 0 | 1.475 | 1.555 | 1.424 | 1.869 | 1.581 | +0.027 |
+| 6 | arch | tonn |  | 0.002 | 1 | 1.475 | 1.559 | 1.421 | 1.906 | 1.590 | +0.037 |
+| 7 | hyb135_s1 | tonn_core | {"attn_layers": [1, 3, 5]} | 0.002 | 1 | 1.461 | 1.551 | 1.412 | 1.950 | 1.594 | +0.040 |
+| 8 | arch2 | tonn_core_search |  | 0.002 | 0 | 1.479 | 1.566 | 1.422 | 1.948 | 1.604 | +0.050 |
+| 9 | arch2 | tonn_core |  | 0.002 | 0 | 1.483 | 1.570 | 1.424 | 1.959 | 1.609 | +0.055 |
+| 10 | arch2 | tonn_core_search |  | 0.002 | 1 | 1.474 | 1.562 | 1.417 | 1.993 | 1.611 | +0.058 |
+| 11 | arch2 | tonn_core |  | 0.002 | 1 | 1.477 | 1.567 | 1.419 | 2.000 | 1.616 | +0.062 |
+| 12 | arch | tonn |  | 0.002 | 0 | 1.491 | 1.578 | 1.433 | 1.964 | 1.616 | +0.063 |
+
+Llama baseline (lr 2e-3, 2 seeds): mean 1.554 bits per byte.
+
+**So far:**
+- **Hybrid layers.** TONN layers alternate with full attention layers (attention at layers 1, 3 and 5,
+  `attn_layers`). Seed 0 beats Llama on every kind of text (mean 1.525 vs Llama's best seed 1.546), with and without
+  the search. Seed 1 doesn't: it is close on prose but far behind on code (1.950).
+- **The seed decides the TONN layers' starting circuits.** Seed 0 drew mostly short convolutions (7) plus
+  state-space and oscillating memories. Seed 1 drew more per-position gated units, which duplicate the MLP, and only
+  3 convolutions. A convolution-heavy starting mix is queued (2 seeds) to test whether that is the difference.
+- **More attention circuits** in the starting mix (`init_weights` RP x4) helps code a lot (1.959 to 1.869 on seed 0)
+  but stays behind Llama: full attention layers do better than more small attention circuits.
+- TONN results vary far more from seed to seed than Llama's (code: 0.21 vs 0.03), because the seed also picks the
+  architecture. Conclusions need at least two seeds.
+

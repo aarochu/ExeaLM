@@ -27,6 +27,7 @@ import torch
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from exealm import ExeaLM, MemoryContext, count_params, get_config  # noqa: E402
 from exealm.data.loader import TokenShards  # noqa: E402
+from exealm.config import HYBRID  # noqa: E402
 from exealm.train.pretrain import lr_at, make_optimizer, pick_device  # noqa: E402
 
 # arm: (agents sharing a board while training, rows grouped per data draw, data policy)
@@ -47,12 +48,17 @@ def score(model, batches, swarm_size, n_agents, dev):
     return dict(bpb=round(sum(per) / n_agents, 4), per_agent=[round(v, 4) for v in per])
 
 
+def HYBRID_KW(layers):
+    return dict(attn_layers=tuple(range(1, layers, 2)), **HYBRID)
+
+
 def run(arm, a, dev, train, evals):
     train_swarm, group, policy = ARMS[arm]
     group = a.swarm if group > 1 else 1
     torch.manual_seed(a.seed)
     cfg = get_config("small-tonn", vocab_size=int(train.meta["vocab_size"]), d=a.d, n_layers=a.layers, slots=a.slots,
-                     h=a.h, chunk=a.chunk, swarm_size=a.swarm, seed=a.seed)
+                     h=a.h, chunk=a.chunk, swarm_size=a.swarm, seed=a.seed,
+                     **(HYBRID_KW(a.layers) if a.hybrid else {}))
     model = ExeaLM(cfg).to(dev)
     opt = make_optimizer(model, a.lr, 0.1)
     rng = np.random.default_rng(a.seed)
@@ -95,6 +101,7 @@ def main():
     ap.add_argument("--eval_every", type=int, default=500)
     ap.add_argument("--eval_batches", type=int, default=24)
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--hybrid", type=int, default=0, help="1: the default ExeaLM hybrid (attention on odd layers)")
     ap.add_argument("--device", default="auto")
     ap.add_argument("--out", default="results/swarm_text")
     a = ap.parse_args()

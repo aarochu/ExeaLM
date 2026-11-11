@@ -53,6 +53,8 @@ class RetrievalCircuit(nn.Module):
         self.chunk, self.topk, self.h = cfg.chunk, cfg.rag_topk, cfg.h
         self.kv = nn.Linear(cfg.enc_dim, 2 * cfg.h, bias=False)            # retrieved token states -> keys, values
         self.log_tau = nn.Parameter(torch.tensor(math.log(10.0)))           # sharpness of "which result to trust"
+        self.record = False         # if True, keep what the last forward pass retrieved in self.last (for inspection)
+        self.last = None
 
     def forward(self, S, mem):
         A, Q, G = S                                                        # each (B, T, g, h)
@@ -60,6 +62,7 @@ class RetrievalCircuit(nn.Module):
         C = self.chunk
         n = -(-T // C)
         ds = None if mem is None else mem.datastore
+        self.last = None
         if ds is None or ds.keys is None or mem.encoder is None or n < 2:
             return A * 0.0                                                 # zeros, still attached to the graph
         ends = torch.arange(1, n, device=A.device) * C - 1                 # last position of chunks 0 .. n-2
@@ -75,6 +78,9 @@ class RetrievalCircuit(nn.Module):
         Lc = states.shape[1]
         score = self.log_tau.exp() * (qf.unsqueeze(1) * keys.view(M, k, h).float()).sum(-1)
         logp = torch.log_softmax(score.masked_fill(~valid, -1e4), dim=1)   # (M, k)
+        if self.record:                                                    # see exealm/eval/show_retrieval.py
+            self.last = dict(idx=idx.view(B, n - 1, g, k).cpu(), weight=logp.detach().exp().view(B, n - 1, g, k).cpu(),
+                             valid=valid.view(B, n - 1, g, k).cpu())
         kr, vr = self.kv(states).view(M, k, Lc, 2, h).float().unbind(3)    # (M, k, Lc, h)
         Qc = F.pad(Q, (0, 0, 0, 0, 0, n * C - T))[:, C:]                   # read queries of chunks 1 .. n-1
         Qc = Qc.reshape(B, n - 1, C, g, h).permute(0, 1, 3, 2, 4).reshape(M, C, h).float()

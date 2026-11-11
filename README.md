@@ -148,7 +148,7 @@ Starting points. Almost everything here runs on a laptop or a free Google Colab 
 - [ ] Re-indexing schedule: how stale can the stored keys get? (`small` preset)
 - [ ] Cheaper retrieval: cache encodings, share retrievals across layers, tune top-k and chunk length
 - [ ] Key size: 32 vs 64 vs 128 numbers (`small` preset)
-- [ ] (starter) Script that prints what RG retrieved for a prompt
+- [x] (starter) Script that prints what RG retrieved for a prompt (`python -m exealm.eval.show_retrieval`)
 - [ ] Swap the datastore at inference: can the model use new facts without retraining?
 
 ### Architecture (`exealm/model/`)

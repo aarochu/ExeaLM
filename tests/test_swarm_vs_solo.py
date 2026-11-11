@@ -24,7 +24,7 @@ def test_split_swarm_leaks_one_token_to_the_previous_agent_and_the_score_leaves_
     m(torch.randint(0, cfg.vocab_size, (2, 32)), MemoryContext(swarm_size=2))   # set the slots' output scales
     m.eval()
     x, y, d = fixed_batches(SyntheticShards(n_tokens=20_000), 1, 2, 32, 2, "split", 0)[0]
-    assert x[1, 0] == y[0, -1]
+    assert y[0, -1] in (x[1, 0], -100)                                          # -100 once the loader hides it
     x2 = x.clone()
     x2[1, 0] = (x2[1, 0] + 1) % cfg.vocab_size
     with torch.no_grad():

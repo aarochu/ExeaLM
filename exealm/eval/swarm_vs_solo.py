@@ -49,13 +49,13 @@ def eval_bits(model, batches, swarm, agents, ds=None, keep_last=False, device="c
     for x, y, d in batches:
         x, y, d = x.to(device), y.to(device), d.to(device)
         logits = model(x, MemoryContext(datastore=ds, doc_ids=d, swarm_size=swarm))[0].float()
-        nll = F.cross_entropy(logits.transpose(1, 2), y, reduction="none")          # (B, T)
+        nll = F.cross_entropy(logits.transpose(1, 2), y, reduction="none", ignore_index=-100)   # (B, T)
+        scored = y != -100                                                            # the loader may hide targets
         if not keep_last:
-            nll = nll[:, :-1]
-        per_row = nll.sum(1).double().cpu()
+            nll, scored = nll[:, :-1], scored[:, :-1]
         rows = torch.arange(x.shape[0]) % agents
-        tot.index_add_(0, rows, per_row)
-        cnt.index_add_(0, rows, torch.full((x.shape[0],), float(nll.shape[1]), dtype=torch.float64))
+        tot.index_add_(0, rows, nll.sum(1).double().cpu())
+        cnt.index_add_(0, rows, scored.sum(1).double().cpu())
     bits = tot / cnt / math.log(2)
     return round(float(tot.sum() / cnt.sum() / math.log(2)), 4), [round(float(b), 4) for b in bits]
 

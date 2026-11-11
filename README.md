@@ -173,7 +173,7 @@ Starting points. Almost everything here runs on a laptop or a free Google Colab 
 - [ ] Download and stage every DATA.md source: parallel, resumable, checksummed (build and test it on samples)
 - [ ] (starter) Count tokens in each K2 Horizon subset (streams, no big download)
 - [ ] (starter) Write a formatter for each K2 Horizon subset, since their fields differ
-- [ ] Remove near-duplicates across all sources (MinHash LSH, runs on a CPU)
+- [x] Remove near-duplicates across all sources (MinHash LSH, runs on a CPU): `python -m exealm.data.dedup`
 - [ ] Decontaminate against every benchmark we report
 - [ ] Filter personal data and toxicity
 - [ ] Quality classifier for Japanese web text (small classifier, Colab-sized)

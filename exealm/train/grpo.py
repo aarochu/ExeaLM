@@ -12,8 +12,8 @@ The loss below is complete and tested. What is left (a good project for a contri
   TODO(post-training): the loop: sample groups with model.generate, score them, compute old/reference log-probs,
                        several optimizer steps per batch.
   TODO(post-training): reward functions for math (exact answer), code (unit tests), format, Japanese tasks.
-  TODO(post-training): multi-agent rewards: a team of agents shares an AgentBoard and is rewarded together for solving
-                       a task none could solve alone. This is how the AG circuits learn to talk (docs/memory.md).
+  TODO(post-training): multi-agent rewards: a swarm of agents shares a board and is rewarded together for solving a
+                       task none could solve alone. This is how the AG circuits learn to talk (docs/swarms.md).
 """
 import re
 

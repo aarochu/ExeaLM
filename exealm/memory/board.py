@@ -4,7 +4,7 @@ Every AG circuit is one channel of the board, named by (layer, slot). Once per c
 message to its channel: a key (what the message is about), a value (what it says) and a write strength (how much the
 agent wants it read). AG circuits of other agents read the channel with attention.
 
-During pretraining no AgentBoard object is needed: the rows of a batch are grouped into teams and share an in-batch
+During pretraining no AgentBoard object is needed: the rows of a batch are grouped into swarms, each with its own in-batch
 board, so posts get gradients (exealm/model/board.py). This class is the persistent board used at inference and in
 multi-agent post-training, when agents run at different times or in different processes. Messages are vectors, not
 text. Turning them into text a person can read is an open task (docs/memory.md).

@@ -4,16 +4,17 @@ The planned data for ExeaLM: how many tokens we train on and why, the pretrainin
 
 ## How many tokens, and why
 
-We train on about **100 billion tokens**, for a model of roughly 1 billion parameters.
+We train on about **100 billion tokens**, for a model of about **0.1 billion parameters** (101M, the `100m` preset in [`exealm/config.py`](exealm/config.py)).
 
-**Why 100 billion.** Extra tokens help less and less. Using the loss fit from [Hoffmann et al., 2022](https://arxiv.org/abs/2203.15556), the predicted loss for a 1B-parameter model drops by about 0.19 going from 20B to 100B tokens, by about 0.06 from 100B to 200B, and by about 0.05 from 200B to 400B. Past roughly 200B tokens, each doubling buys little, and the effort is better spent on the data mix and on evals. The fit comes from standard transformers, so we treat these numbers as a guide and check the curve on TONN with small runs.
+**Why 100 billion.** Extra tokens help less and less. Using the loss fit from [Hoffmann et al., 2022](https://arxiv.org/abs/2203.15556), the predicted loss drops by about 0.19 going from 20B to 100B tokens, by about 0.06 from 100B to 200B, and by about 0.05 from 200B to 400B. In that fit the gain from extra data does not depend on model size, so these numbers hold for our 0.1B model as they would for a 1B one. Past roughly 200B tokens, each doubling buys little, and the effort is better spent on the data mix and on evals. The fit comes from standard transformers, so we treat these numbers as a guide and check the curve on TONN with small runs.
 
-100B tokens on 1B parameters is 100 tokens per parameter, five times the compute-optimal ratio of about 20. Small models are trained past that ratio on purpose, because they are cheaper to run afterward.
+100B tokens on 0.1B parameters is 1,000 tokens per parameter, fifty times the compute-optimal ratio of about 20. Small models are trained far past that ratio on purpose, because they are cheaper to run afterward ([SmolLM2-135M](https://huggingface.co/HuggingFaceTB/SmolLM2-135M) saw 2T tokens).
 
 **How long it takes.** Training compute is about 6 x parameters x tokens ([Kaplan et al., 2020](https://arxiv.org/abs/2001.08361)). At about 300 TFLOPs sustained per MI300X:
 
-- 1B parameters on 100B tokens: about 560 GPU-hours, which is about 3 days on 8 GPUs (about 23 days on one).
-- 100M parameters on 100B tokens: about 56 GPU-hours, which is about 7 hours on 8 GPUs.
+- 0.1B parameters on 100B tokens (our run): about 56 GPU-hours, which is about 7 hours on 8 GPUs.
+- TONN trains about 2.7 times slower per step than a transformer of the same size in our small tests (its kernels are not optimized yet), and retrieval adds roughly a quarter more. Until that improves, plan for about 200 GPU-hours, or about a day on 8 GPUs.
+- For comparison, 1B parameters on 100B tokens would be about 560 GPU-hours at transformer speed.
 
 Plan for 30% to 100% more wall-clock time for restarts, evals, and data loading. TONN's real throughput is unmeasured, so we will update these numbers after the first small runs.
 
@@ -33,7 +34,7 @@ We select the 100B tokens from roughly 40T available, so nothing needs to be rep
 | Annealing (last 5% of training) | 5B | 5% | [Dolma 3 Dolmino mix](https://huggingface.co/datasets/allenai/dolma3_dolmino_mix-100B-1125), FineMath-4+, top-scored FineWeb-Edu, K2 Horizon math and code reasoning |
 | **Total** | **100B** | **100%** | |
 
-The shares are a first guess. Before the main run we train a small model (about 100M parameters on 20B tokens) on three or four versions of this mix and keep the one that scores best.
+The shares are a first guess. Before the main run we train on three or four versions of this mix at small scale (the 17M-parameter `small` preset first, then the 0.1B model on 20B tokens) and keep the one that scores best.
 
 Rules: dedupe across every source, decontaminate against every benchmark we report, and repeat no source more than about 4 times (at 100B tokens we should not need to repeat any).
 

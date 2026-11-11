@@ -1,4 +1,4 @@
-"""Picking the best 2T tokens: filters, deduplication and quality scores.
+"""Picking the best 100B tokens (DATA.md): filters, deduplication and quality scores.
 
 What is here works but is simple: rule-based filters (in the spirit of the Gopher and FineWeb rules) with separate
 rules for Japanese, and exact deduplication by hash. What should replace or extend it:

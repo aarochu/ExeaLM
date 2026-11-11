@@ -4,11 +4,12 @@ LLM-jp Corpus v4 (no account needed; files are 100-500 MB jsonl.gz each):
     python -m exealm.data.download llmjp --subset ja/ja_wiki --max_files 1 --out data/raw
     python -m exealm.data.download llmjp --list ja/ja_cc            # just list the files
 
-K2 Horizon (Hugging Face; needs `pip install -e ".[data]"`; streams, so no full download):
+Any Hugging Face dataset in DATA.md, for example K2 Horizon (needs `pip install -e ".[data]"`; streams, so no full
+download):
     python -m exealm.data.download hf --repo IFM/TxT360-v2 --config web-high-medium --max_rows 20000 --out data/raw
 
 Everything ends up as jsonl.gz files with one {"text": ..., "source": ...} object per line, which tokenizer.py and
-pack.py read. The full 2T-token download is a job for the training cluster, not a laptop.
+pack.py read. The full 100B-token download is a job for the training cluster, not a laptop.
 """
 import argparse
 import gzip

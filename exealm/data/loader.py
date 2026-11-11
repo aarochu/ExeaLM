@@ -1,11 +1,14 @@
 """Batches for training: random windows of packed tokens, with the document id of every position.
 
-Teams (for the AG agent board): consecutive rows of a batch form a team and share a board. How to choose teammates
-is an open question (docs/memory.md). Policies here:
-    "random"  unrelated windows (the board carries little useful information; the default for now)
-    "doc"     the team reads consecutive windows of one long document, each agent its own part, so posting what
-              you read helps the teammates who read the other parts
-  TODO(data): "related": windows from documents that are close in the model's own retrieval space.
+Swarms (for the AG agent board): consecutive rows of a batch form one swarm and share one board; a batch holds many
+swarms, and swarms never hear each other. What each swarm reads decides what its board can teach (docs/swarms.md):
+    "split"   the swarm reads consecutive windows of the token stream (one long document, when there is one), each
+              agent its own part, so posting what you read helps the agents reading the other parts
+    "random"  unrelated windows: the board has little to offer, so agents learn when to ignore it and stay quiet
+    "mixed"   each swarm is "split" with probability p_split, otherwise "random" (the default)
+  TODO(swarms): "related": documents that are near each other in the model's own retrieval space.
+  TODO(swarms): "crosslingual": the same topic in Japanese and English (Wikipedia interlanguage links).
+  TODO(swarms): swarm sizes that vary within a run (2 to 8).
 """
 import json
 import os
@@ -23,14 +26,18 @@ class TokenShards:
     def doc_of(self, pos):
         return np.searchsorted(self.offsets, pos, side="right") - 1
 
-    def batch(self, B, T, rng, team_size=1, policy="random"):
-        """x, y (B, T) int64 and doc ids (B, T) int64. rng: a numpy Generator."""
+    def batch(self, B, T, rng, swarm_size=1, policy="random", p_split=0.5):
+        """x, y (B, T) int64 and doc ids (B, T) int64. rng: a numpy Generator. B must be a multiple of swarm_size
+        for swarm policies to apply."""
         n = len(self.tokens) - T - 1
-        if policy == "doc" and team_size > 1:
+        if policy in ("split", "mixed") and swarm_size > 1 and B % swarm_size == 0:
             starts = []
-            for _ in range(B // team_size):
-                s0 = int(rng.integers(0, max(1, n - team_size * T)))
-                starts += [s0 + j * T for j in range(team_size)]
+            for _ in range(B // swarm_size):
+                if policy == "split" or rng.random() < p_split:
+                    s0 = int(rng.integers(0, max(1, n - swarm_size * T)))
+                    starts += [s0 + j * T for j in range(swarm_size)]
+                else:
+                    starts += list(rng.integers(0, n, size=swarm_size))
             starts = np.array(starts)
         else:
             starts = rng.integers(0, n, size=B)

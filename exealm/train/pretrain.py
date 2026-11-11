@@ -1,5 +1,5 @@
-"""Pretraining: next-token prediction, with TONN's architecture search early on and the retrieval index refreshed as
-the model's own encoder learns.
+"""Pretraining: next-token prediction, with TONN's architecture search early on, the retrieval index refreshed as the
+model's own encoder learns, and every batch split into swarms of agents that share a board (docs/swarms.md).
 
 Smoke test, no download needed (CPU, about a minute):
     python -m exealm.train.pretrain --preset tiny --data synthetic --steps 300 --datastore_chunks 2000
@@ -89,7 +89,8 @@ def main(argv=None):
     ap.add_argument("--warmup", type=int, default=None)
     ap.add_argument("--decay_frac", type=float, default=0.2)
     ap.add_argument("--clip", type=float, default=1.0)
-    ap.add_argument("--team_policy", default="random", choices=["random", "doc"])
+    ap.add_argument("--swarm_policy", default="mixed", choices=["mixed", "split", "random"],
+                    help="what each swarm reads (docs/swarms.md)")
     ap.add_argument("--search", type=int, default=1)
     ap.add_argument("--search_every", type=int, default=100)
     ap.add_argument("--search_until", type=float, default=0.5)
@@ -113,7 +114,7 @@ def main(argv=None):
     model = (ExeaLM(cfg) if a.model == "tonn" else Llama(cfg)).to(dev)
     opt = make_optimizer(model, a.lr, a.wd)
     warmup = a.warmup if a.warmup is not None else max(1, min(2000, a.steps // 20))
-    team = cfg.team_size if a.model == "tonn" else 1
+    swarm = cfg.swarm_size if a.model == "tonn" else 1
     rng = np.random.default_rng(a.seed)
 
     ds = None
@@ -122,13 +123,13 @@ def main(argv=None):
         ds.refresh(model.encoder, model.emb, step=0)
 
     def mem_for(docs):
-        return MemoryContext(datastore=ds, doc_ids=docs.to(dev), team_size=team)
+        return MemoryContext(datastore=ds, doc_ids=docs.to(dev), swarm_size=swarm)
 
     def fixed_batches(src, n, seed):
         r = np.random.default_rng(seed)
         out = []
         for _ in range(n):
-            x, y, d = src.batch(a.batch, a.seq, r, team, a.team_policy)
+            x, y, d = src.batch(a.batch, a.seq, r, swarm, a.swarm_policy)
             out.append((x.to(dev), y.to(dev), mem_for(d)))
         return out
 
@@ -167,7 +168,7 @@ def main(argv=None):
             ds.refresh(model.encoder, model.emb, step=step)
         for g in opt.param_groups:
             g["lr"] = lr_at(step, a.steps, a.lr, warmup, a.decay_frac)
-        x, y, d = data.batch(a.batch, a.seq, rng, team, a.team_policy)
+        x, y, d = data.batch(a.batch, a.seq, rng, swarm, a.swarm_policy)
         x, y = x.to(dev), y.to(dev)
         with torch.autocast(**amp) if amp else torch.enable_grad():
             loss = model(x, mem_for(d), y)[1]

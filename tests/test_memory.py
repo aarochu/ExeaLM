@@ -1,19 +1,19 @@
 """The retrieval (RG) and agent-board (AG) circuits: no peeking at the future, no looking up the document being read,
-agents only hear what teammates posted earlier, and gradients reach the model's own retrieval encoder."""
+agents only hear what their swarm posted earlier, and gradients reach the model's own retrieval encoder."""
 import torch
 
 from exealm import AgentBoard, Datastore, ExeaLM, MemoryContext, get_config
 
 
-def setup(team_size=1, B=2, T=40, seed=0):
+def setup(swarm_size=1, B=2, T=40, seed=0):
     torch.manual_seed(seed)
-    cfg = get_config("tiny", team_size=team_size)
+    cfg = get_config("tiny", swarm_size=swarm_size)
     m = ExeaLM(cfg)
     ds = Datastore(torch.randint(0, cfg.vocab_size, (50, cfg.rag_chunk_len)), torch.arange(50) % 7)
     ds.refresh(m.encoder, m.emb)
     x = torch.randint(0, cfg.vocab_size, (B, T))
     docs = torch.full((B, T), 3)
-    mem = MemoryContext(datastore=ds, doc_ids=docs, team_size=team_size)
+    mem = MemoryContext(datastore=ds, doc_ids=docs, swarm_size=swarm_size)
     m.train()
     m(x, mem)                                    # set each slot's running output scale
     m.eval()
@@ -31,8 +31,8 @@ def test_retrieval_and_board_are_causal_for_one_agent():
     assert not torch.allclose(a[0, t:], b[0, t:])
 
 
-def test_teammates_only_hear_posts_from_earlier_chunks():
-    cfg, m, x, mem = setup(team_size=2)
+def test_swarm_members_only_hear_posts_from_earlier_chunks():
+    cfg, m, x, mem = setup(swarm_size=2)
     t = 13                                       # inside chunk 1 (chunks of 8)
     x2 = x.clone()
     x2[0, t] = (x2[0, t] + 1) % cfg.vocab_size
@@ -41,11 +41,11 @@ def test_teammates_only_hear_posts_from_earlier_chunks():
     c_end = (t // cfg.chunk + 1) * cfg.chunk     # the post made in t's chunk is readable from here on
     assert torch.allclose(a[0, :t], b[0, :t], atol=1e-5)
     assert torch.allclose(a[1, :c_end], b[1, :c_end], atol=1e-5)
-    assert not torch.allclose(a[1, c_end:], b[1, c_end:])      # the teammate does hear it later
+    assert not torch.allclose(a[1, c_end:], b[1, c_end:])      # the other agent does hear it later
 
 
-def test_separate_teams_do_not_hear_each_other():
-    cfg, m, x, mem = setup(team_size=1)
+def test_separate_swarms_do_not_hear_each_other():
+    cfg, m, x, mem = setup(swarm_size=1)
     x2 = x.clone()
     x2[0] = (x2[0] + 1) % cfg.vocab_size
     with torch.no_grad():
@@ -85,3 +85,15 @@ def test_persistent_board_shares_messages_between_agents():
     assert n == cfg.n_layers * (x.shape[1] // cfg.chunk)     # one AG slot per layer, one post per full chunk
     assert not torch.allclose(alone, heard)                   # agent 1 heard agent 0
     assert torch.allclose(own, own_alone, atol=1e-5)          # an agent does not re-read its own old posts
+
+
+def test_swarm_batches_split_and_mix():
+    import numpy as np
+    from exealm.data.loader import SyntheticShards
+    data = SyntheticShards(n_tokens=20_000)
+    x, y, d = data.batch(8, 16, np.random.default_rng(0), swarm_size=4, policy="split")
+    for s in range(2):                                    # each swarm reads one stretch of text, in order
+        rows = x[4 * s:4 * s + 4]
+        assert torch.equal(rows[1:, 0], y[4 * s:4 * s + 3, -1])
+    x, y, d = data.batch(8, 16, np.random.default_rng(0), swarm_size=4, policy="mixed")
+    assert x.shape == (8, 16) and d.shape == (8, 16)

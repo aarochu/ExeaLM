@@ -8,7 +8,7 @@ Planned (each is a good first project):
     to compare small models.
   * Japanese: llm-jp-eval (https://github.com/llm-jp/llm-jp-eval), JCommonsenseQA, JNLI.
   * Retrieval (RG): questions whose answers are in the datastore but not in the prompt; compare with RG switched off.
-  * Agents (AG): team tasks where each agent sees part of the information; score with and without the board.
+  * Agents (AG): swarm tasks where each agent sees part of the information; solo vs swarms of 2, 4, 8.
   * Speed: tokens per second for training and generation against the Llama baseline of the same size.
 
   TODO(evals): an lm-evaluation-harness model wrapper (exealm/eval/harness.py) around ExeaLM.

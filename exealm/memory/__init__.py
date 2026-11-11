@@ -14,14 +14,14 @@ class MemoryContext:
 
     datastore:   read-only Datastore for RG circuits (None: RG slots output zeros)
     doc_ids:     (B, T) the document id of every position, so retrieval never returns the document being read
-    team_size:   consecutive batch rows that share one in-batch board (AG circuits)
+    swarm_size:  consecutive batch rows that form one swarm and share one in-batch board (AG circuits)
     board:       a persistent AgentBoard (inference, multi-agent post-training); None during pretraining
     agent_ids:   (B,) which agent each row is, for posting to and reading from the persistent board
     write_board: post this pass's messages to the persistent board
     """
     datastore: Optional[Datastore] = None
     doc_ids: Optional[torch.Tensor] = None
-    team_size: int = 1
+    swarm_size: int = 1
     board: Optional[AgentBoard] = None
     agent_ids: Optional[torch.Tensor] = None
     write_board: bool = False

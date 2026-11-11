@@ -36,7 +36,7 @@ Rules that keep it honest:
 Open problems:
 - **Scale.** Brute-force search is fine for a few million chunks. Billions of tokens need FAISS (IVF-PQ), sharded
   across GPUs, and re-encoding them costs real compute. How often is often enough?
-- **What goes in the datastore?** All 2T tokens is too much. A curated few billion (encyclopedias, textbooks,
+- **What goes in the datastore?** All 100B training tokens is more than one index needs. A curated few billion (encyclopedias, textbooks,
   documentation, in Japanese and English) is the starting idea.
 - **Key size.** Keys are 32 numbers (one slot's width). Is that enough to find the right chunk among millions?
 - **Cost.** Re-encoding 4 retrieved chunks for each RG slot is about 4× the batch's own tokens per RG slot, through a
@@ -52,24 +52,20 @@ Once per 64-token chunk, every AG slot posts one message to its channel of the b
 - **strength:** sigmoid(w · average of stream C + b), how much it wants the message read. Low strength means staying
   quiet.
 
-At every position it reads the channel with attention (query = stream B at that position) over messages its teammates
+At every position it reads the channel with attention (query = stream B at that position) over messages the other agents of its swarm
 posted in **earlier** chunks, plus a "nothing" entry so it can ignore the board. The result is gated by stream C.
 
-Three settings:
-- **Pretraining:** consecutive rows of a batch form a team (`team_size = 4`) and share an in-batch board, so posting
-  and reading both get gradients. Separate teams never hear each other. An agent may read its own past posts
-  (`board_read_self`).
+Where it runs:
+- **Training:** the rows of a batch form **swarms** (`swarm_size = 4`), each with its own in-batch board, so posting
+  and reading both get gradients. A batch holds many swarms at once, and swarms never hear each other. An agent may
+  read its own past posts (`board_read_self`). What each swarm reads, and how swarms are used in post-training, is in
+  [swarms.md](swarms.md).
 - **Inference:** a persistent `AgentBoard` holds messages from agents that ran before or elsewhere. Posts are keyed by
   (agent, chunk), so re-reading the same text replaces messages instead of duplicating them. An agent never re-reads
   its own old posts from the persistent board, because it gets those from its own context.
-- **Multi-agent post-training:** teams solve tasks together (each agent sees part of the information) and share the
-  reward. This is where AG should really learn to communicate.
 
 Open problems:
-- **Who should be teammates in pretraining?** Random windows give the board almost nothing worth sharing. Windows of
-  the same long document (`--team_policy doc`) give it something, but agents then see other parts of the same
-  document, which isn't what inference looks like. Documents that are near each other in the retrieval space are
-  another option. This needs experiments.
+- **What should each swarm read in pretraining?** See [swarms.md](swarms.md).
 - **Readable messages.** Messages are vectors. A small decoder that turns a message into text would let people see
   what agents tell each other, and would let ExeaLM talk to other models.
 - **Infrastructure.** `AgentBoard.save/load` is a file. Agents on different machines need a small board server

@@ -13,8 +13,8 @@ You do not need to have trained a model before.
    pip install -e ".[dev,data]"
    pytest
    ```
-4. Pick an open [issue](https://github.com/exea-labs/ExeaLM/issues), a row of the README's "Where we need help" table,
-   or an idea from [docs/ideas.md](docs/ideas.md). Comment on the issue to claim it.
+4. Pick an item from the README's [to-do list](README.md#to-do-list) or an idea from [docs/ideas.md](docs/ideas.md).
+   Most run on a laptop or a free Colab GPU. Say which one you're taking in #exealm, or open a draft pull request.
 5. Fork the repo, make a branch, make your change, run `pytest`, and open a pull request.
 
 ## Where things are

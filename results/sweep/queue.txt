@@ -1,7 +1,5 @@
-hconv_mem|--root data/tokpack --toks bpe32k --device mps --steps 3000 --seeds 0,1 --models tonn --cfg '{"attn_layers": [1, 3, 5], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}}'
-hconv_search|--root data/tokpack --toks bpe32k --device mps --steps 3000 --seeds 0,1 --models tonn_core_search --cfg '{"attn_layers": [1, 3, 5], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}}'
-hconv_6k|--root data/tokpack --toks bpe32k --device mps --steps 6000 --seeds 0 --models tonn_core --cfg '{"attn_layers": [1, 3, 5], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}}'
-llama_6k|--root data/tokpack --toks bpe32k --device mps --steps 6000 --seeds 0 --models llama
+mid_llama|--root data/tokpack --toks bpe32k --device mps --steps 3000 --seeds 0,1 --models llama --size '{"d": 384, "n_layers": 8, "slots": 12, "h": 32}'
+speed_hybrid|experiments/speed.py --preset 100m --device mps --batch 8 --seq 2048 --out results/speed_hybrid
 hyb135_lr1e3|--root data/tokpack --toks bpe32k --steps 3000 --device mps --seeds 0,1 --lr 1e-3 --models tonn_core --cfg '{"attn_layers": [1, 3, 5]}'
 ragtext_v2|experiments/rag_text.py --data data/bytes/train --val data/bytes/val --chunks 200000 --steps 4000 --arms rag --device mps --out results/rag_text_v2
 core_lr1e3|--root data/tokpack --toks bpe32k --steps 3000 --device mps --seeds 0 --models tonn_core --lr 1e-3
@@ -14,3 +12,5 @@ rp3sm3|--root data/tokpack --toks bpe32k --steps 3000 --device mps --seeds 0 --m
 rp_pin4|--root data/tokpack --toks bpe32k --steps 3000 --device mps --seeds 0 --models tonn_core --cfg '{"pinned": {"RP": 4}}'
 rp_pin4_search|--root data/tokpack --toks bpe32k --steps 3000 --device mps --seeds 0 --models tonn_core_search --cfg '{"pinned": {"RP": 4}}'
 h64_rp2|--root data/tokpack --toks bpe32k --steps 3000 --device mps --seeds 0 --models tonn_core --cfg '{"slots": 4, "h": 64, "pinned": {"RP": 2}}'
+hconv_024|--root data/tokpack --toks bpe32k --device mps --steps 3000 --seeds 0,1 --models tonn_core --cfg '{"attn_layers": [0, 2, 4], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}}'
+hconv_25|--root data/tokpack --toks bpe32k --device mps --steps 3000 --seeds 0,1 --models tonn_core --cfg '{"attn_layers": [2, 5], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}}'

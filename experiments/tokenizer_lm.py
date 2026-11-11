@@ -56,6 +56,7 @@ def run(tok, a, dev, kind="tonn", seed=0):
         for k in ("attn_layers", "menu", "lags"):
             if k in over:
                 over[k] = tuple(over[k])
+    over = {**json.loads(a.size), **over}                  # model size for every model, Llama included
     cfg = get_config("small-tonn", vocab_size=int(train.meta["vocab_size"]), seed=seed, **over)
     model = (Llama(cfg) if kind == "llama" else ExeaLM(cfg)).to(dev)
     searcher, sel = None, None
@@ -107,6 +108,7 @@ def main():
     ap.add_argument("--models", default="tonn", help="any of tonn, tonn_core, tonn_core_search, llama")
     ap.add_argument("--seeds", default="0")
     ap.add_argument("--cfg", default="{}", help="JSON ModelConfig overrides for the TONN models")
+    ap.add_argument("--size", default="{}", help='JSON size overrides for every model, e.g. {"d": 384, "n_layers": 8}')
     ap.add_argument("--tag", default="", help="a name for this run in the output rows")
     ap.add_argument("--device", default="auto")
     ap.add_argument("--out", default="results/tokenizer")

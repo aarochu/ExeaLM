@@ -275,29 +275,63 @@ TONN's 790. It is now the default (`100m`, `small` presets).
    attention layers do better than more small attention circuits.
 4. **A convolution-heavy start** fixed the hybrid's seed 1 (code 1.950 to 1.748).
 
-Still running: the hybrid with retrieval and board circuits kept, with the search, and at 6,000 steps against Llama
-at 6,000 steps.
+**Confirmations:**
+
+| Run | English | Japanese wiki | Japanese web | Code | Mean |
+|---|---|---|---|---|---|
+| Hybrid + retrieval and board circuits (idle), 2 seeds | 1.455 | 1.530 | 1.410 | 1.769 | 1.541 |
+| Hybrid + search, 2 seeds | 1.450 | 1.519 | 1.403 | 1.747 | 1.530 |
+| Hybrid, 2 seeds (above) | 1.452 | 1.521 | 1.404 | 1.746 | 1.531 |
+| Llama, 2 seeds | 1.467 | 1.540 | 1.420 | 1.789 | 1.554 |
+
+- With the memory circuits kept, as in the real model, the hybrid still beats Llama on every kind of text with both
+  seeds. The idle circuits (2 of 8 slots in each TONN layer) cost 0.010.
+- The search adds about 0.001 on top of a good starting mix; it swapped only a few circuits.
+
+**Longer training (6,000 steps, seed 0; the data is seen about 1.2 times):**
+
+| Model | English | Japanese wiki | Japanese web | Code | Mean | Training time on the Mac |
+|---|---|---|---|---|---|---|
+| Hybrid | **1.390** | **1.455** | **1.344** | **1.676** | **1.466** | 1,367 s |
+| Llama | 1.396 | 1.459 | 1.348 | 1.686 | 1.472 | 1,037 s |
+
+The hybrid is still ahead on every kind of text, but the margin shrank from 0.014 (3,000 steps, seed 0) to 0.006.
+
+**Equal compute is not won yet.** Llama trains 1.3 times faster per step here: TONN's circuits run as plain PyTorch
+on the Mac's GPU, while attention uses fused kernels. At equal training time Llama would currently come out ahead. The
+hybrid wins at equal size and equal steps. Making it win at equal compute needs:
+- faster TONN kernels (the to-do list's top speed item);
+- longer runs to see whether the margin keeps shrinking.
+
+Next: the same comparison at 27M parameters (2 seeds each).
 
 **Full leaderboard** (`python experiments/leaderboard.py results/arch results/arch2 results/sweep`):
 
 | Rank | Run | Model | Config | lr | Seed | English | Japanese wiki | Japanese web | Code | Mean | vs Llama |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| 1 | hyb135_search | tonn_core_search | {"attn_layers": [1, 3, 5]} | 0.002 | 0 | 1.448 | 1.517 | 1.400 | 1.734 | 1.525 | -0.029 |
-| 2 | hyb135 | tonn_core | {"attn_layers": [1, 3, 5]} | 0.002 | 0 | 1.449 | 1.516 | 1.399 | 1.736 | 1.525 | -0.029 |
-| 3 | hyb135_mem | tonn | {"attn_layers": [1, 3, 5]} | 0.002 | 0 | 1.449 | 1.518 | 1.402 | 1.734 | 1.526 | -0.028 |
-| 4 | hyb135_conv | tonn_core | {"attn_layers": [1, 3, 5], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}} | 0.002 | 1 | 1.451 | 1.519 | 1.402 | 1.748 | 1.530 | -0.024 |
-| 5 | hyb135_conv | tonn_core | {"attn_layers": [1, 3, 5], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}} | 0.002 | 0 | 1.452 | 1.523 | 1.406 | 1.745 | 1.532 | -0.022 |
-| 6 | arch | llama |  | 0.002 | 0 | 1.461 | 1.534 | 1.413 | 1.775 | 1.546 | -0.008 |
-| 7 | arch | llama |  | 0.002 | 1 | 1.473 | 1.545 | 1.426 | 1.803 | 1.562 | +0.008 |
-| 8 | rp4 | tonn_core | {"init_weights": {"RP": 4}} | 0.002 | 0 | 1.475 | 1.555 | 1.424 | 1.869 | 1.581 | +0.027 |
-| 9 | hyb135_search | tonn_core_search | {"attn_layers": [1, 3, 5]} | 0.002 | 1 | 1.455 | 1.543 | 1.407 | 1.933 | 1.584 | +0.031 |
-| 10 | arch | tonn |  | 0.002 | 1 | 1.475 | 1.559 | 1.421 | 1.906 | 1.590 | +0.037 |
-| 11 | hyb135_s1 | tonn_core | {"attn_layers": [1, 3, 5]} | 0.002 | 1 | 1.461 | 1.551 | 1.412 | 1.950 | 1.594 | +0.040 |
-| 12 | arch2 | tonn_core_search |  | 0.002 | 0 | 1.479 | 1.566 | 1.422 | 1.948 | 1.604 | +0.050 |
-| 13 | arch2 | tonn_core |  | 0.002 | 0 | 1.483 | 1.570 | 1.424 | 1.959 | 1.609 | +0.055 |
-| 14 | arch2 | tonn_core_search |  | 0.002 | 1 | 1.474 | 1.562 | 1.417 | 1.993 | 1.611 | +0.058 |
-| 15 | arch2 | tonn_core |  | 0.002 | 1 | 1.477 | 1.567 | 1.419 | 2.000 | 1.616 | +0.062 |
-| 16 | arch | tonn |  | 0.002 | 0 | 1.491 | 1.578 | 1.433 | 1.964 | 1.616 | +0.063 |
+| 1 | hconv_6k | tonn_core | {"attn_layers": [1, 3, 5], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}} | 0.002 | 0 | 1.390 | 1.455 | 1.343 | 1.676 | 1.466 | -0.061 |
+| 2 | llama_6k | llama |  | 0.002 | 0 | 1.395 | 1.459 | 1.348 | 1.686 | 1.472 | -0.054 |
+| 3 | hyb135_search | tonn_core_search | {"attn_layers": [1, 3, 5]} | 0.002 | 0 | 1.448 | 1.517 | 1.400 | 1.734 | 1.525 | -0.002 |
+| 4 | hyb135 | tonn_core | {"attn_layers": [1, 3, 5]} | 0.002 | 0 | 1.449 | 1.516 | 1.399 | 1.736 | 1.525 | -0.002 |
+| 5 | hyb135_mem | tonn | {"attn_layers": [1, 3, 5]} | 0.002 | 0 | 1.449 | 1.518 | 1.402 | 1.734 | 1.526 | -0.001 |
+| 6 | hconv_search | tonn_core_search | {"attn_layers": [1, 3, 5], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}} | 0.002 | 1 | 1.448 | 1.516 | 1.401 | 1.751 | 1.529 | +0.003 |
+| 7 | hyb135_conv | tonn_core | {"attn_layers": [1, 3, 5], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}} | 0.002 | 1 | 1.451 | 1.519 | 1.402 | 1.748 | 1.530 | +0.003 |
+| 8 | hconv_search | tonn_core_search | {"attn_layers": [1, 3, 5], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}} | 0.002 | 0 | 1.452 | 1.522 | 1.406 | 1.744 | 1.531 | +0.004 |
+| 9 | hyb135_conv | tonn_core | {"attn_layers": [1, 3, 5], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}} | 0.002 | 0 | 1.452 | 1.523 | 1.406 | 1.745 | 1.532 | +0.005 |
+| 10 | hconv_mem | tonn | {"attn_layers": [1, 3, 5], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}} | 0.002 | 0 | 1.456 | 1.532 | 1.410 | 1.764 | 1.540 | +0.014 |
+| 11 | hconv_mem | tonn | {"attn_layers": [1, 3, 5], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}} | 0.002 | 1 | 1.455 | 1.528 | 1.410 | 1.773 | 1.542 | +0.015 |
+| 12 | arch | llama |  | 0.002 | 0 | 1.461 | 1.534 | 1.413 | 1.775 | 1.546 | +0.019 |
+| 13 | arch | llama |  | 0.002 | 1 | 1.473 | 1.545 | 1.426 | 1.803 | 1.562 | +0.035 |
+| 14 | rp4 | tonn_core | {"init_weights": {"RP": 4}} | 0.002 | 0 | 1.475 | 1.555 | 1.424 | 1.869 | 1.581 | +0.054 |
+| 15 | hyb135_search | tonn_core_search | {"attn_layers": [1, 3, 5]} | 0.002 | 1 | 1.455 | 1.543 | 1.407 | 1.933 | 1.584 | +0.058 |
+| 16 | arch | tonn |  | 0.002 | 1 | 1.475 | 1.559 | 1.421 | 1.906 | 1.590 | +0.064 |
+| 17 | hyb135_s1_curve | tonn_core | {"attn_layers": [1, 3, 5]} | 0.002 | 1 | 1.461 | 1.551 | 1.412 | 1.949 | 1.593 | +0.067 |
+| 18 | hyb135_s1 | tonn_core | {"attn_layers": [1, 3, 5]} | 0.002 | 1 | 1.461 | 1.551 | 1.412 | 1.950 | 1.594 | +0.067 |
+| 19 | arch2 | tonn_core_search |  | 0.002 | 0 | 1.479 | 1.566 | 1.422 | 1.948 | 1.604 | +0.077 |
+| 20 | arch2 | tonn_core |  | 0.002 | 0 | 1.483 | 1.570 | 1.424 | 1.959 | 1.609 | +0.082 |
+| 21 | arch2 | tonn_core_search |  | 0.002 | 1 | 1.474 | 1.562 | 1.417 | 1.993 | 1.611 | +0.085 |
+| 22 | arch2 | tonn_core |  | 0.002 | 1 | 1.477 | 1.567 | 1.419 | 2.000 | 1.616 | +0.089 |
+| 23 | arch | tonn |  | 0.002 | 0 | 1.491 | 1.578 | 1.433 | 1.964 | 1.616 | +0.090 |
 
-Llama baseline (lr 2e-3, 2 seeds): mean 1.554 bits per byte.
+Llama baseline (lr 2e-3, 3 seeds): mean 1.527 bits per byte.
 

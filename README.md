@@ -55,7 +55,9 @@ hybrid beat it on every kind of text, with both seeds, at 13M parameters (bits p
 | Pure TONN (2 seeds) | 1.480 | 1.568 | 1.422 | 1.979 |
 | **ExeaLM hybrid (2 seeds)** | **1.452** | **1.521** | **1.404** | **1.746** |
 
-That's small scale and short training; longer runs and bigger models are next. Details:
+That's small scale and short training. At 6,000 steps the hybrid is still ahead on every kind of text, but by less
+(0.006). Llama also trains 1.3 times faster per step on our hardware, so **at equal compute the hybrid doesn't win
+yet**: faster TONN kernels are the top speed task. Details:
 [results/README.md](results/README.md#8-overnight-sweep-making-tonn-beat-llama-experimentsrun_queuesh-resultssweep).
 
 Nobody picks which circuit goes where. While the model trains, TONN switches each kind of circuit off on text it has not trained on and keeps it only if the error goes up. Useless circuits are replaced by new ones, drawn more often from the kinds that have proven useful. Early in training the architecture changes; later it is frozen.

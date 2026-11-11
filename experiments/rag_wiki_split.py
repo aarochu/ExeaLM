@@ -52,10 +52,37 @@ def split_articles(shards, chunk, min_tokens, seed, eval_frac):
     return arts[k:], arts[:k]
 
 
-def library(arts):
+class OracleDatastore(Datastore):
+    """A diagnostic: the search always looks inside the right article (the one whose second half is being read) and
+    returns its k chunks closest to the query. If retrieval helps with this perfect article-level search but not with
+    the learned one, the search is the bottleneck; if it doesn't help even here, the model isn't using what it reads."""
+
+    def search(self, q, k, exclude=None, block=262144):
+        if exclude is None:
+            return super().search(q, k)
+        art = exclude - TEXT_DOC_OFFSET
+        if not hasattr(self, "_rows"):
+            ids = self.doc_ids.cpu().numpy()
+            order = np.argsort(ids, kind="stable")
+            uniq, start = np.unique(ids[order], return_index=True)
+            ends = list(start[1:]) + [len(ids)]
+            self._rows = {int(u): torch.as_tensor(order[a:b], device=self.keys.device) for u, a, b in zip(uniq, start, ends)}
+        idx = torch.zeros(len(q), k, dtype=torch.long, device=q.device)
+        ok = torch.zeros(len(q), k, dtype=torch.bool, device=q.device)
+        for i, a in enumerate(art.tolist()):
+            rows = self._rows.get(int(a))
+            if rows is None:
+                continue
+            sc = self.keys[rows] @ q[i].float()
+            top = sc.topk(min(k, len(rows))).indices
+            idx[i, :len(top)], ok[i, :len(top)] = rows[top], True
+        return idx, ok
+
+
+def library(arts, oracle=False):
     tokens = np.concatenate([lib for _, lib, _ in arts]).astype(np.int64)
     docs = np.concatenate([np.full(len(lib), d) for d, lib, _ in arts])
-    return Datastore(tokens, docs)
+    return (OracleDatastore if oracle else Datastore)(tokens, docs)
 
 
 def text_batch(arts, B, T, rng):
@@ -153,13 +180,14 @@ def main():
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--neighbour", type=float, default=0.0, help="weight of the encoder's neighbour-finding loss")
     ap.add_argument("--tag", default="")
+    ap.add_argument("--oracle", type=int, default=0, help="1: the search always looks inside the right article")
     ap.add_argument("--device", default="auto")
     ap.add_argument("--out", default="results/rag_wiki_split")
     a = ap.parse_args()
     dev = pick_device(a.device)
     shards = TokenShards(a.wiki)
     train_arts, eval_arts = split_articles(shards, a.chunk, a.min_tokens, a.seed, a.eval_frac)
-    lib_train, lib_eval = library(train_arts).to(dev), library(eval_arts).to(dev)
+    lib_train, lib_eval = library(train_arts, a.oracle).to(dev), library(eval_arts, a.oracle).to(dev)
     erng = np.random.default_rng(10_000)
     evals = [text_batch(eval_arts, a.batch, a.seq, erng) for _ in range(a.eval_batches)]
     print(json.dumps(dict(train_articles=len(train_arts), eval_articles=len(eval_arts), library_train=len(lib_train),

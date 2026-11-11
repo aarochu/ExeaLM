@@ -189,11 +189,14 @@ Starting points. Almost everything here runs on a laptop or a free Google Colab 
 
 ### Architecture (`exealm/model/`)
 - [x] TONN vs Llama with the `small` preset on real tokens, two seeds each: Llama ahead, most of all on code ([results](results/README.md#7-tonn-vs-llama-on-real-tokens-experimentstokenizer_lmpy---models-))
-- [ ] Close the gap: TONN without idle memory circuits, with the search, with more attention-like circuits (running)
+- [x] Close the gap: TONN layers alternating with attention layers, with a convolution-heavy start, beat Llama at equal size and steps (13M, 27M) and at equal compute at 27M ([results](results/README.md#8-overnight-sweep-making-tonn-beat-llama-experimentsrun_queuesh-resultssweep))
+- [ ] Confirm the hybrid's equal-compute lead at 48M (running), then at 0.1B **(GPU)**
+- [ ] Hybrid layout: which layers get attention, and how many (layout variants queued)
+- [ ] Re-run the swarm and retrieval experiments on the hybrid (they ran on pure TONN)
 - [ ] Ablations at `small` size: with and without RG, AG and swarms
 - [ ] New circuit types, for example a gated delta-rule memory or sliding-window attention
 - [ ] Shape sweep at fixed parameters: depth, width, slots per layer, channels per slot
-- [ ] Search schedule: how long to search, how much to replace, how long new circuits are protected
+- [ ] Search schedule: how long to search, how much to replace, how long new circuits are protected (on the hybrid with a good start it adds about 0.001 today)
 - [ ] Which circuit types survive the search, and does that change from `tiny` to `small`?
 - [ ] (starter) Plot the architecture the search chose, layer by layer, over training
 - [ ] (GPU) Confirm the winners at the full 0.1B size

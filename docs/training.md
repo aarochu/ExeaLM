@@ -22,11 +22,11 @@ quarter, so plan for about 200 GPU-hours, about a day on 8 GPUs, until the kerne
 fast kernels matter.
 
 What exists: `exealm/train/pretrain.py` runs this loop on one device, with the search, retrieval, swarms, WSD,
-evaluation and checkpoints.
+evaluation and checkpoints. A run can stop and pick up again exactly where it left off (`--save_every`, `--stop_at`,
+`--resume auto`), which is what lets a long run span several Colab sessions or preemptible GPU jobs.
 
 What's missing:
 - multi-GPU (DDP, then FSDP)
-- resuming from a checkpoint
 - a streaming data loader for the full mix with per-source weights
 - context extension
 - `torch.compile`

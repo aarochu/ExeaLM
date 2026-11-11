@@ -18,6 +18,7 @@ import torch.nn.functional as F
 from ..config import ModelConfig
 from ..memory import MemoryContext
 from . import circuits as Cc
+from .baseline import Attention
 from .board import BoardCircuit
 from .common import MLP, RMSNorm
 from .retrieval import ChunkEncoder, RetrievalCircuit
@@ -41,11 +42,12 @@ def initial_specs(cfg, seed=None):
     rng = random.Random(cfg.seed if seed is None else seed)
     fill = [t for t in cfg.menu if t not in cfg.pinned]
     out = []
-    for _ in range(cfg.n_layers):
+    for _ in range(cfg.n_layers - len(cfg.attn_layers)):
         row = [dict(tmpl=t, lag=0, lam0=0.5) for t, c in cfg.pinned.items() for _ in range(c)]
         if len(row) > cfg.slots:
             raise ValueError("more pinned circuits than slots")
-        row += [rand_spec(rng, cfg, fill) for _ in range(cfg.slots - len(row))]
+        w = {t: cfg.init_weights.get(t, 1.0) for t in fill} if cfg.init_weights else None   # unlisted types: 1
+        row += [rand_spec(rng, cfg, fill, w) for _ in range(cfg.slots - len(row))]
         out.append(row)
     return out
 
@@ -147,7 +149,8 @@ class ExeaLM(nn.Module):
         specs = specs or initial_specs(cfg)
         self.emb = nn.Embedding(cfg.vocab_size, cfg.d)
         nn.init.normal_(self.emb.weight, std=0.02)
-        self.layers = nn.ModuleList([TONNLayer(cfg, specs[i], i) for i in range(cfg.n_layers)])
+        self.layers = nn.ModuleList([TONNLayer(cfg, specs[i], i) for i in range(cfg.n_layers - len(cfg.attn_layers))])
+        self.attn = nn.ModuleList([Attention(cfg.d, max(1, cfg.d // 64)) for _ in cfg.attn_layers])
         f = cfg.ffn_width
         self.mlps = nn.ModuleList([MLP(cfg.d, f) for _ in range(cfg.n_layers)]) if f else None
         self.norm = RMSNorm(cfg.d)
@@ -167,8 +170,14 @@ class ExeaLM(nn.Module):
             mem = MemoryContext()
         mem = replace(mem, encoder=self.encoder, emb=self.emb, tokens=idx, cache={})
         x = self.emb(idx)
-        for i, lay in enumerate(self.layers):
-            x = lay(x, mem)
+        ti = ai = 0
+        for i in range(self.cfg.n_layers):
+            if i in self.cfg.attn_layers:                     # a hybrid model's full attention block
+                x = self.attn[ai](x)
+                ai += 1
+            else:
+                x = self.layers[ti](x, mem)
+                ti += 1
             if self.mlps is not None:
                 x = self.mlps[i](x)
         logits = self.head(self.norm(x))

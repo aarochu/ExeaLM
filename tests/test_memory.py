@@ -101,3 +101,13 @@ def test_swarm_batches_split_and_mix():
         assert torch.equal(rows[1:, 0], y[4 * s:4 * s + 3, -1])
     x, y, d = data.batch(8, 16, np.random.default_rng(0), swarm_size=4, policy="mixed")
     assert x.shape == (8, 16) and d.shape == (8, 16)
+
+
+def test_datastore_returns_k_results_even_when_the_own_document_dominates():
+    keys = torch.nn.functional.normalize(torch.randn(200, 8), dim=-1)
+    doc = torch.zeros(200, dtype=torch.long)
+    doc[190:] = torch.arange(1, 11)                       # 190 chunks of document 0, 10 chunks of other documents
+    ds = Datastore(torch.zeros(200, 4, dtype=torch.long), doc)
+    ds.keys = keys
+    idx, ok = ds.search(keys[:5], 4, exclude=torch.zeros(5, dtype=torch.long))
+    assert ok.all() and (ds.doc_ids[idx] != 0).all()

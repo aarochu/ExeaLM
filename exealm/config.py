@@ -29,6 +29,8 @@ class ModelConfig:
     tie_embeddings: bool = True
     # Circuits every layer is guaranteed: each layer starts with this many and the search never goes below it.
     pinned: dict = field(default_factory=lambda: {"RG": 1, "AG": 1})
+    init_weights: dict = None        # relative chance of each type in the starting circuits (unlisted: 1)
+    attn_layers: tuple = ()          # layers that are a full multi-head attention block instead of a TONN layer
     seed: int = 0
     # memory circuits
     chunk: int = 64                  # RG retrieves and AG posts once per chunk of this many tokens
@@ -49,7 +51,7 @@ class ModelConfig:
     @classmethod
     def from_dict(cls, d):
         d = dict(d)
-        for k in ("menu", "lags"):
+        for k in ("menu", "lags", "attn_layers"):
             if k in d:
                 d[k] = tuple(d[k])
         return cls(**d)

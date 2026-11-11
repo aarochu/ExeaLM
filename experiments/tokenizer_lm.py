@@ -51,6 +51,11 @@ def run(tok, a, dev, kind="tonn", seed=0):
     over = {}
     if kind.startswith("tonn_core"):
         over = dict(pinned={}, menu=tuple(t for t in MENU if t not in ("RG", "AG")))
+    if kind != "llama":
+        over.update(json.loads(a.cfg))                 # e.g. {"init_weights": {"RP": 4}, "attn_layers": [1, 3, 5]}
+        for k in ("attn_layers", "menu", "lags"):
+            if k in over:
+                over[k] = tuple(over[k])
     cfg = get_config("small", vocab_size=int(train.meta["vocab_size"]), seed=seed, **over)
     model = (Llama(cfg) if kind == "llama" else ExeaLM(cfg)).to(dev)
     searcher, sel = None, None
@@ -75,7 +80,8 @@ def run(tok, a, dev, kind="tonn", seed=0):
         bytes_seen += a.batch * a.seq * train.meta["bytes_per_token"]
         if dev.type == "mps" and step % 200 == 0:
             torch.mps.empty_cache()
-    rec = dict(model=kind, seed=seed, tokenizer=tok, vocab=int(train.meta["vocab_size"]), params_M=round(count_params(model) / 1e6, 2),
+    rec = dict(model=kind, tag=a.tag, cfg=a.cfg if kind != "llama" else "{}", lr=a.lr, seed=seed, tokenizer=tok,
+               vocab=int(train.meta["vocab_size"]), params_M=round(count_params(model) / 1e6, 2),
                steps=a.steps, tokens_seen=a.steps * a.batch * a.seq, bytes_seen=int(bytes_seen),
                secs=round(time.time() - t0, 1),
                bits_per_byte={v[4:]: bits_per_byte(model, s, a, dev) for v, s in vals.items()})
@@ -95,13 +101,15 @@ def main():
     ap.add_argument("--eval_batches", type=int, default=16)
     ap.add_argument("--models", default="tonn", help="any of tonn, tonn_core, tonn_core_search, llama")
     ap.add_argument("--seeds", default="0")
+    ap.add_argument("--cfg", default="{}", help="JSON ModelConfig overrides for the TONN models")
+    ap.add_argument("--tag", default="", help="a name for this run in the output rows")
     ap.add_argument("--device", default="auto")
     ap.add_argument("--out", default="results/tokenizer")
     a = ap.parse_args()
     dev = pick_device(a.device)
     os.makedirs(a.out, exist_ok=True)
     rows = []
-    name = "lm_seed0.json" if (a.models, a.seeds) == ("tonn", "0") else "lm_compare.json"
+    name = "lm_seed0.json" if (a.models, a.seeds, a.tag) == ("tonn", "0", "") else f"lm_compare{('_' + a.tag) if a.tag else ''}.json"
     for tok in a.toks.split(","):
         for kind in a.models.split(","):
             for seed in [int(x) for x in a.seeds.split(",")]:

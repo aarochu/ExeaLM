@@ -70,7 +70,7 @@ def run(arm, a, dev, train, evals):
             torch.mps.empty_cache()
         if (step + 1) % a.eval_every == 0 or step + 1 == a.steps:
             sh, cut = score(model, evals, a.swarm, a.swarm, dev), score(model, evals, 1, a.swarm, dev)
-            rec = dict(arm=arm, step=step + 1, secs=round(time.time() - t0, 1), train_loss=round(float(loss), 4),
+            rec = dict(arm=arm, step=step + 1, secs=round(time.time() - t0, 1), train_loss=round(float(loss.detach()), 4),
                        shared=sh, cut=cut, board_gain=round(cut["bpb"] - sh["bpb"], 4))
             curve.append(rec)
             print(json.dumps(rec), flush=True)

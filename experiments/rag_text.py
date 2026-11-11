@@ -64,7 +64,7 @@ def run(arm, a, dev, train, evals, ds):
             torch.mps.empty_cache()
         if (step + 1) % a.eval_every == 0 or step + 1 == a.steps:
             ds.refresh(model.encoder, model.emb, step=step)        # keys from this model, for scoring
-            rec = dict(arm=arm, step=step + 1, secs=round(time.time() - t0, 1), train_loss=round(float(loss), 4),
+            rec = dict(arm=arm, step=step + 1, secs=round(time.time() - t0, 1), train_loss=round(float(loss.detach()), 4),
                        attached=score(model, evals, ds, dev), removed=score(model, evals, None, dev))
             rec["retrieval_gain"] = round(rec["removed"] - rec["attached"], 4)
             curve.append(rec)

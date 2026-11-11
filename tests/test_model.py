@@ -3,6 +3,7 @@ import random
 import torch
 
 from exealm import ExeaLM, Llama, MemoryContext, count_params, get_config
+from exealm.config import MENU
 from exealm.model.circuits import CIRCUITS
 from exealm.model.scan import decay_scan, gated_scan
 from exealm.model.search import denoise_step
@@ -80,3 +81,15 @@ def test_generate_appends_tokens():
     m = ExeaLM(cfg).eval()
     out = m.generate(torch.zeros(1, 5, dtype=torch.long), 3, mem=MemoryContext())
     assert out.shape == (1, 8)
+
+
+def test_hybrid_attention_layers_and_starting_mix():
+    cfg = tiny(n_layers=3, attn_layers=(1,), init_weights={t: (1.0 if t == "RP" else 0.0) for t in MENU})
+    m = ExeaLM(cfg)
+    assert len(m.layers) == 2 and len(m.attn) == 1
+    for lay in m.layers:                                   # the starting mix: only RP besides the pinned circuits
+        assert {s["tmpl"] for s in lay.specs} <= {"RP", "RG", "AG"}
+    x = torch.randint(0, cfg.vocab_size, (2, 24))
+    logits, loss = m(x, targets=x)
+    loss.backward()
+    assert logits.shape == (2, 24, cfg.vocab_size) and torch.isfinite(loss)

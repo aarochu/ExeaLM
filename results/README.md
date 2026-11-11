@@ -178,8 +178,28 @@ about 56 GPU-hours (transformer speed) × 2.65, about 150 GPU-hours with retriev
 
 ## 6. Built-in RAG on real text (`experiments/rag_text.py`)
 
-PENDING: FineWeb-Edu bytes, a datastore of 200,000 chunks of training text (64 bytes each), the 5.2M model, 4,000
-steps, trained with and without the datastore.
+**Setup.** FineWeb-Edu bytes, the 5.2M model, 4,000 steps. The datastore is 200,000 chunks (64 bytes each) of
+training documents, and retrieval never returns chunks of the document being read.
+
+**First run: it exposed a bug.** Scores in bits per byte:
+
+| Step | Datastore attached | Datastore removed |
+|---|---|---|
+| 1,000 | 1.935 | 1.929 |
+| 2,000 | 1.785 | 1.783 |
+| 3,000 | **6.122** | 1.727 |
+
+What went wrong:
+- The search fetched 16 candidates and dropped those from the document being read afterwards.
+- The nearest chunks are usually from that same document, so in training the read often came back empty, and the
+  circuit's running output scale settled low.
+- Held-out documents are not in the datastore at all, so at evaluation every read came back full, and divided by that
+  low scale it swamped the model.
+
+**Fix** (`Datastore.search`): the same-document rule is now applied inside the search, so every query gets k results
+from other documents. A test covers the case where the document being read dominates the datastore.
+
+**Rerun:** PENDING.
 
 ## 7. TONN vs Llama on real tokens (`experiments/tokenizer_lm.py --models ...`)
 

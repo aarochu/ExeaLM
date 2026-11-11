@@ -187,6 +187,7 @@ Starting points. Almost everything here runs on a laptop or a free Google Colab 
 - [ ] Key size: 32 vs 64 vs 128 numbers (`small` preset)
 - [ ] (starter) Script that prints what RG retrieved for a prompt
 - [ ] Swap the datastore at inference: can the model use new facts without retraining?
+- [ ] Make retrieval pay off on real text: today it gives no gain on web text (results §6). Try a Wikipedia datastore with knowledge-heavy text, bigger chunks, real tokens
 
 ### Architecture (`exealm/model/`)
 - [x] TONN vs Llama with the `small` preset on real tokens, two seeds each: Llama ahead, most of all on code ([results](results/README.md#7-tonn-vs-llama-on-real-tokens-experimentstokenizer_lmpy---models-))

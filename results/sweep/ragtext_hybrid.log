@@ -1,0 +1,9 @@
+{"arm": "rag", "step": 1000, "secs": 247.9, "train_loss": 1.3575, "attached": 1.9414, "removed": 1.9316, "retrieval_gain": -0.0098}
+{"arm": "rag", "step": 2000, "secs": 499.1, "train_loss": 1.2473, "attached": 1.829, "removed": 1.8241, "retrieval_gain": -0.0049}
+{"arm": "rag", "step": 3000, "secs": 750.6, "train_loss": 1.2557, "attached": 1.7501, "removed": 1.7476, "retrieval_gain": -0.0025}
+{"arm": "rag", "step": 4000, "secs": 1002.2, "train_loss": 1.1099, "attached": 1.6149, "removed": 1.6142, "retrieval_gain": -0.0007}
+{"arm": "none", "step": 1000, "secs": 113.7, "train_loss": 1.3613, "attached": 1.941, "removed": 1.9351, "retrieval_gain": -0.0059}
+{"arm": "none", "step": 2000, "secs": 230.7, "train_loss": 1.2473, "attached": 1.8279, "removed": 1.8253, "retrieval_gain": -0.0026}
+{"arm": "none", "step": 3000, "secs": 347.9, "train_loss": 1.2575, "attached": 1.7517, "removed": 1.7497, "retrieval_gain": -0.002}
+{"arm": "none", "step": 4000, "secs": 465.0, "train_loss": 1.1111, "attached": 1.615, "removed": 1.6132, "retrieval_gain": -0.0018}
+WROTE results/rag_text_hybrid/rag_text_seed0.json

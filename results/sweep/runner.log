@@ -59,3 +59,5 @@
 2026-11-11 12:21:13 START eqt_big_attn6
 2026-11-11 12:54:50 END eqt_big_attn6 {"model": "tonn_core", "tag": "eqt_big_attn6", "cfg": "{\"attn_layers\": [1, 2, 4, 5, 7, 8], \"init_weights\": {\"C\": 4, \"G\": 0.25, \"D\": 0.25}}", "lr": 0.0015, "seed": 0, "tokenizer": "bpe32k", "
 2026-11-11 12:54:50 START ragtext_hybrid
+2026-11-11 13:19:29 END ragtext_hybrid WROTE results/rag_text_hybrid/rag_text_seed0.json
+2026-11-11 13:19:29 START eqt_big_attn6_s1

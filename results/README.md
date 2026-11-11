@@ -213,7 +213,26 @@ What went wrong:
 **Fix** (`Datastore.search`): the same-document rule is now applied inside the search, so every query gets k results
 from other documents. A test covers the case where the document being read dominates the datastore.
 
-**Rerun:** PENDING.
+**Rerun on the hybrid** (the default architecture, with the fix; `results/rag_text_hybrid/`), bits per byte:
+
+| Model | Datastore attached | Datastore removed | Training time |
+|---|---|---|---|
+| Hybrid trained with retrieval | 1.615 | 1.614 | 1,002 s |
+| Hybrid trained without (control) | | **1.613** | 465 s |
+
+With the fix, training with retrieval is stable and no longer hurts. **But on real web text it doesn't help either**,
+and at this size it doubles the training time.
+
+The mechanism works (section 3: 100% on 1,024 unseen facts), so the problem is what's retrieved. A datastore of random
+64-byte chunks of web text is rarely relevant to the next bytes of a new document.
+
+What to try next (in the to-do list):
+- knowledge-heavy text with a matching datastore, for example Wikipedia articles as the store and questions or
+  related pages as the text;
+- bigger chunks and real tokens instead of bytes;
+- a bigger model.
+
+Until retrieval shows a gain on real text, the plan should treat it as an option that costs compute.
 
 ## 7. TONN vs Llama on real tokens (`experiments/tokenizer_lm.py --models ...`)
 

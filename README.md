@@ -166,7 +166,7 @@ Starting points. Almost everything here runs on a laptop or a free Google Colab 
 - [ ] One scan call for all running-sum circuits in a layer
 - [ ] Recurrent state cache, so generating a token doesn't re-read the whole context
 - [ ] `torch.compile` support
-- [ ] (starter) Benchmark script: training and generation tokens per second, TONN vs Llama
+- [x] (starter) Benchmark script: training and generation tokens per second, TONN vs Llama (`python -m exealm.eval.speed`)
 - [ ] (GPU) Run the tests and a short training run on an MI300X and report what breaks
 
 ### Data ([DATA.md](DATA.md), `exealm/data/`)

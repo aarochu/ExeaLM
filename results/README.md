@@ -172,6 +172,20 @@ of 2,048 tokens. Median of 5 steps.
 - Swarms cost almost nothing (1%).
 - Re-encoding a 100k-chunk datastore takes 1.7 seconds.
 
+**After the speed work and the hybrid** (`results/speed_hybrid/`, the new default `100m` preset):
+
+| Model | Parameters | Tokens per second | Relative cost per token |
+|---|---|---|---|
+| Llama baseline | 100.2M | 12,026 | 1.00 |
+| **ExeaLM hybrid**, memory circuits idle | 101.1M | 10,630 | **1.13** |
+| ExeaLM hybrid, retrieval on | 101.1M | 7,259 | 1.66 |
+| ExeaLM hybrid, retrieval on + swarms of 4 | 101.1M | 7,285 | 1.65 |
+
+Two things made the difference:
+- Half the layers are now standard attention.
+- The gated recurrences (GI, SM) use a parallel prefix scan: 5 and 3.3 times faster per circuit, measured with
+  `experiments/profile_circuits.py`.
+
 **For the compute plan.** If the MI300X shows the same ratios, 100B tokens at DATA.md's 300 TFLOPs per GPU comes to
 about 56 GPU-hours (transformer speed) × 2.65, about 150 GPU-hours with retrieval on. Retrieval is not useful yet
 (section 3), so this is a cost estimate, not a recommendation.

@@ -52,6 +52,9 @@ class Datastore:
         """Re-encode every chunk with the model's current encoder."""
         was = encoder.training
         encoder.eval()
+        if getattr(encoder, "lexical", 0) and not getattr(encoder, "idf_ready", False):
+            encoder.set_idf(self.tokens)                             # word rarity, from the first datastore it sees
+            encoder.idf_ready = True
         keys = [encoder(self.tokens[i:i + batch], emb)[1].float() for i in range(0, len(self), batch)]
         encoder.train(was)
         self.keys = torch.cat(keys)
@@ -61,22 +64,24 @@ class Datastore:
     def search(self, q, k, exclude=None, block=262144):
         """Top-k chunks by dot product for each query q (M, key_dim). exclude (M,): a document id per query whose
         chunks must not be returned (the document being read, so the model cannot look up the text it is about to
-        predict). Returns indices (M, k') and a validity mask (M, k'), k' = min(k, N)."""
+        predict). The rule is applied inside the search, so every query gets k results from other documents.
+        (An earlier version fetched 4k candidates and dropped excluded ones afterwards. The nearest chunks are usually
+        from the same document, so reads often came back empty in training but never in evaluation, and the model
+        broke when evaluated with the datastore: experiments/rag_text.py.) Returns indices (M, k') and a validity mask
+        (M, k'), k' = min(k, N)."""
         if self.keys is None:
             raise RuntimeError("Datastore.refresh() must run before search()")
         q = q.float()
-        kk = min(len(self), 4 * k if exclude is not None else k)        # fetch extra, then drop excluded ones
+        kk = min(k, len(self))
         best_s = best_i = None
         for b0 in range(0, len(self), block):                          # blockwise top-k keeps memory bounded
-            s, i = (q @ self.keys[b0:b0 + block].T).topk(min(kk, min(block, len(self) - b0)), dim=1)
+            s = q @ self.keys[b0:b0 + block].T
+            if exclude is not None:
+                s = s.masked_fill(self.doc_ids[b0:b0 + block].view(1, -1) == exclude.view(-1, 1), float("-inf"))
+            s, i = s.topk(min(kk, s.shape[1]), dim=1)
             i = i + b0
             if best_s is not None:
                 s, j = torch.cat([best_s, s], 1).topk(kk, dim=1)
                 i = torch.cat([best_i, i], 1).gather(1, j)
             best_s, best_i = s, i
-        s, i = best_s, best_i
-        if exclude is not None:
-            s = s.masked_fill(self.doc_ids[i] == exclude.view(-1, 1), float("-inf"))
-            s, j = s.topk(min(k, kk), dim=1)
-            i = i.gather(1, j)
-        return i, torch.isfinite(s)
+        return best_i, torch.isfinite(best_s)

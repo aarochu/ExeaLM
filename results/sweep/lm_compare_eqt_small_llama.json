@@ -1,0 +1,99 @@
+{
+ "args": {
+  "root": "data/tokpack",
+  "toks": "bpe32k",
+  "mix": "0.5,0.3,0.2",
+  "steps": 3000,
+  "seconds": 600.0,
+  "batch": 32,
+  "seq": 512,
+  "lr": 0.002,
+  "eval_batches": 16,
+  "models": "llama",
+  "seeds": "0,1",
+  "cfg": "{}",
+  "size": "{}",
+  "tag": "eqt_small_llama",
+  "device": "mps",
+  "out": "results/sweep"
+ },
+ "device": "mps",
+ "rows": [
+  {
+   "model": "llama",
+   "tag": "eqt_small_llama",
+   "cfg": "{}",
+   "lr": 0.002,
+   "seed": 0,
+   "tokenizer": "bpe32k",
+   "vocab": 32768,
+   "params_M": 13.1,
+   "steps": 3609,
+   "seconds_budget": 600.0,
+   "tokens_seen": 59129856,
+   "bytes_seen": 232730694,
+   "secs": 607.7,
+   "bits_per_byte": {
+    "en": 1.4398,
+    "ja_wiki": 1.5112,
+    "ja_web": 1.3937,
+    "code": 1.7453
+   },
+   "architecture": null,
+   "train_loss_every_250": [
+    7.5619,
+    6.0046,
+    5.4301,
+    4.9985,
+    4.7285,
+    4.6116,
+    4.4965,
+    4.421,
+    4.373,
+    4.3036,
+    4.262,
+    4.2094,
+    4.1565,
+    4.0251
+   ]
+  },
+  {
+   "model": "llama",
+   "tag": "eqt_small_llama",
+   "cfg": "{}",
+   "lr": 0.002,
+   "seed": 1,
+   "tokenizer": "bpe32k",
+   "vocab": 32768,
+   "params_M": 13.1,
+   "steps": 3608,
+   "seconds_budget": 600.0,
+   "tokens_seen": 59113472,
+   "bytes_seen": 232666208,
+   "secs": 607.2,
+   "bits_per_byte": {
+    "en": 1.4493,
+    "ja_wiki": 1.5226,
+    "ja_web": 1.4011,
+    "code": 1.7541
+   },
+   "architecture": null,
+   "train_loss_every_250": [
+    7.5948,
+    6.0764,
+    5.6007,
+    5.2067,
+    4.8762,
+    4.6621,
+    4.5331,
+    4.4484,
+    4.3661,
+    4.3457,
+    4.285,
+    4.2544,
+    4.1427,
+    4.0556
+   ]
+  }
+ ]
+}

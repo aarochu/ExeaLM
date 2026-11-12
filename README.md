@@ -45,6 +45,31 @@ TONN is a sequence model that builds its own architecture from data. A normal tr
 
 After each TONN layer comes a gated MLP, as in a transformer.
 
+**ExeaLM is a hybrid.** Every third layer is a TONN layer and the others are full attention layers (5 TONN and 9
+attention layers in the 0.1B model), and TONN's starting circuits favour short convolutions. Pure TONN lost to a
+same-size Llama on real tokens, mostly on code. The hybrid beats it, with both seeds, on every kind of text (bits per
+byte, lower is better):
+
+| Model (13M parameters unless marked, 3,000 steps) | English | Japanese wiki | Japanese web | Code |
+|---|---|---|---|---|
+| Llama-style transformer (2 seeds) | 1.467 | 1.540 | 1.420 | 1.789 |
+| Pure TONN (2 seeds) | 1.480 | 1.568 | 1.422 | 1.979 |
+| **ExeaLM hybrid (2 seeds)** | **1.452** | **1.521** | **1.404** | **1.746** |
+| *27M parameters:* Llama (2 seeds) | 1.446 | 1.523 | 1.402 | 1.778 |
+| *27M parameters:* **ExeaLM hybrid (2 seeds)** | **1.412** | **1.483** | **1.371** | **1.702** |
+| *48M, same training time:* Llama (2 seeds) | 1.369 | 1.439 | 1.333 | 1.667 |
+| *48M, same training time:* **ExeaLM hybrid, 2:1 layout (2 seeds)** | **1.366** | **1.436** | **1.327** | **1.653** |
+| *0.1B (90M), same training time:* Llama (1 seed, lr 1e-3) | 1.392 | 1.468 | 1.352 | 1.713 |
+| *0.1B (90M), same training time:* **ExeaLM hybrid (1 seed, lr 1e-3)** | **1.373** | **1.451** | **1.339** | **1.692** |
+
+That's small scale and short training. At 6,000 steps the hybrid is still ahead on every kind of text, but by less
+(0.006). After the speed work the hybrid costs 1.13 times a Llama per token at 0.1B. Given the same training time on
+the same GPU, it ties Llama at 13M and wins at 27M. At 48M the half-attention layout lost (0.014), but the 2:1 layout
+(two attention layers per TONN layer) **wins at equal compute at 48M: 1.445 vs 1.452, both seeds, every kind of
+text.** That layout is now the default. At 0.1B, with the same training time and the same learning rate, it leads
+Llama by 0.017 on every kind of text (one seed so far; seed 1 is running). Details:
+[results/README.md](results/README.md#8-overnight-sweep-making-tonn-beat-llama-experimentsrun_queuesh-resultssweep).
+
 Nobody picks which circuit goes where. While the model trains, TONN switches each kind of circuit off on text it has not trained on and keeps it only if the error goes up. Useless circuits are replaced by new ones, drawn more often from the kinds that have proven useful. Early in training the architecture changes; later it is frozen.
 
 Paper: [TONN: Networks That Build Their Own Architecture from Data](https://www.preprints.org/manuscript/202611.0994) (Avneh Singh Bhatia, Preprints.org, November 2026). It is a concept paper and has not been peer reviewed. Its larger-scale results are mixed, so we test TONN against a plain transformer at equal compute on small models before any large run.
@@ -110,7 +135,7 @@ There are two candidate 100B-token mixes: DATA.md's (English-heavier) and mix pr
   - the retrieval index is refreshed as the model's own encoder learns;
   - the best data is saved for the final decay phase.
 
-  Compute: about 6 × 10¹⁹ FLOPs. That is about 56 MI300X GPU-hours at transformer speed, and about 200 at TONN's current speed with retrieval, so about a day on 8 GPUs. [docs/training.md](docs/training.md)
+  Compute: about 6 × 10¹⁹ FLOPs. That is about 56 MI300X GPU-hours at transformer speed; the default ExeaLM trains at that speed, and retrieval adds about half again (about 85 GPU-hours), so well under a day on 8 GPUs. [docs/training.md](docs/training.md)
 - **Post-training,** in this order:
   1. supervised fine-tuning on conversations ([`sft.py`](exealm/train/sft.py));
   2. preference tuning ([`dpo.py`](exealm/train/dpo.py));
@@ -118,12 +143,32 @@ There are two candidate 100B-token mixes: DATA.md's (English-heavier) and mix pr
   4. **swarm SFT and swarm RL**: swarms share a board and are trained and rewarded together. This is where the AG circuits really learn to talk.
 - **Compute:** one central run on cloud compute arranged by Exea. You don't need a GPU to contribute. Weights will be released at https://huggingface.co/exea-labs/ExeaLM.
 
+## Results so far
+
+Small-scale tests on a Mac Studio, all in [results/README.md](results/README.md):
+- **Agents learn to talk.** Facts held by one agent reach another only through the board: 99.8% correct with the board,
+  1.5% (chance) without, 3 seeds. With 4 agents, one gathers facts from the other three.
+- **The model builds its own RAG.** On facts that change every step, it finds the right one among 1,024 it has never
+  seen: 100% correct with its datastore, 1.5% (chance) without. It learns its own embeddings, queries and reading.
+  The first design never learned; the report says what broke and why. On real text retrieval is not yet a net win:
+  with a perfect search it would gain 0.040 bits per token on a Wikipedia knowledge task, but the model's own search
+  finds the right article only about 30% of the time.
+- **On real text the board helps:** on the hybrid, swarms beat a matched control by 0.014 bits per byte (0.8%, both seeds; 0.006 on pure TONN), and training as a swarm makes each agent better even with its board cut (0.010).
+- **Tokenizer: 32k.** It wins or ties 49k and 64k on English, Japanese and code at a fixed token budget.
+- **Speed:** the default 0.1B model (2:1 hybrid) trains at the same speed as a same-size Llama (1.01x per token), 1.49x with retrieval on.
+- **Pure TONN lost to Llama on real tokens; the hybrid wins.** Pure TONN trailed a same-size Llama, mostly on code. A
+  hybrid (TONN layers among attention layers, convolution-heavy start) beats Llama on English, Japanese and code
+  with both seeds: at equal size and steps (13M, 27M, 48M) and, with two attention layers per TONN layer, at equal
+  training time at 48M (0.007 bits per byte). That is now the default architecture.
+
 ## To-do list
 
 Starting points. Almost everything here runs on a laptop or a free Google Colab GPU, using the `tiny` preset or the 17M-parameter `small` preset. Items marked **(starter)** are good first tasks. Items marked **(GPU)** need bigger GPUs: maintainers run those on Exea's compute, and you can still write and test the code on a small model. To claim an item, say so in #exealm or open a draft pull request. Anything that changes the model or the training has to win a fair small-scale comparison first ([CONTRIBUTING.md](CONTRIBUTING.md)).
 
 ### Swarms and agents (`exealm/model/board.py`, `exealm/data/loader.py`, [docs/swarms.md](docs/swarms.md))
-- [ ] First experiment: does a split swarm predict its text better than solo agents reading the same text? (`small` preset)
+- [x] Proof of mechanism: agents learn to pass facts over the board during training, 99.8% vs 1.5% with the board cut ([results](results/README.md#1-agents-learn-to-talk-through-the-board-during-training-experimentsswarm_relaypy))
+- [x] First real-text experiment: split swarms beat a matched control by 0.006 bits per byte at 5M parameters; split batches cost 0.021 ([results](results/README.md#2-swarms-on-real-text-experimentsswarm_textpy))
+- [ ] Swarm batches that keep as many independent stretches of text as solo batches (the 0.021 cost above)
 - [ ] (starter) Measure board use during training: AG worth in the search log, how often agents read nothing, post strength
 - [ ] Related swarms: group documents that are near each other in the model's own retrieval space
 - [ ] Cross-lingual swarms: pair Japanese and English Wikipedia articles on the same topic (interlanguage links)
@@ -150,45 +195,52 @@ Starting points. Almost everything here runs on a laptop or a free Google Colab 
 - [ ] Key size: 32 vs 64 vs 128 numbers (`small` preset)
 - [ ] (starter) Script that prints what RG retrieved for a prompt
 - [ ] Swap the datastore at inference: can the model use new facts without retraining?
+- [ ] Make retrieval pay off on real text. A perfect search would gain 0.040 bits per token on a Wikipedia knowledge task. Rare-word codes in the keys raise the search's hit rate from 12% to 30%, but the net gain over a no-retrieval model is not yet established (+0.026 and -0.002 on two seeds; results §6). Next: better pooling, hard negatives, a bigger encoder, larger models
 
 ### Architecture (`exealm/model/`)
-- [ ] TONN vs Llama with the `small` preset on real tokens, two seeds each (a free Colab GPU is enough)
+- [x] TONN vs Llama with the `small` preset on real tokens, two seeds each: Llama ahead, most of all on code ([results](results/README.md#7-tonn-vs-llama-on-real-tokens-experimentstokenizer_lmpy---models-))
+- [x] Close the gap: TONN layers alternating with attention layers, with a convolution-heavy start, beat Llama at equal size and steps (13M, 27M) and at equal compute at 27M ([results](results/README.md#8-overnight-sweep-making-tonn-beat-llama-experimentsrun_queuesh-resultssweep))
+- [ ] Confirm the hybrid's equal-compute lead at 48M (running), then at 0.1B **(GPU)**
+- [ ] Hybrid layout: which layers get attention, and how many (layout variants queued)
+- [ ] Re-run the swarm and retrieval experiments on the hybrid (they ran on pure TONN)
 - [ ] Ablations at `small` size: with and without RG, AG and swarms
 - [ ] New circuit types, for example a gated delta-rule memory or sliding-window attention
 - [ ] Shape sweep at fixed parameters: depth, width, slots per layer, channels per slot
-- [ ] Search schedule: how long to search, how much to replace, how long new circuits are protected
+- [ ] Search schedule: how long to search, how much to replace, how long new circuits are protected (on the hybrid with a good start it adds about 0.001 today)
 - [ ] Which circuit types survive the search, and does that change from `tiny` to `small`?
 - [ ] (starter) Plot the architecture the search chose, layer by layer, over training
 - [ ] (GPU) Confirm the winners at the full 0.1B size
 
 ### Speed (`exealm/model/scan.py`)
 - [ ] Fused Triton kernels for `decay_scan` and `gated_scan` (any NVIDIA GPU works, including a free Colab T4; must also run on AMD MI300X)
+- [ ] A compile-friendly TONN layer: one code path for every circuit type, so `torch.compile` can fuse it (today it gains 8% for the hybrid and 20% for Llama)
 - [ ] One scan call for all running-sum circuits in a layer
 - [ ] Recurrent state cache, so generating a token doesn't re-read the whole context
 - [ ] `torch.compile` support
-- [ ] (starter) Benchmark script: training and generation tokens per second, TONN vs Llama
+- [x] Training-speed benchmark: TONN 1.5x a same-size Llama per token, 2.7x with retrieval on ([results](results/README.md#5-speed-of-the-real-model-experimentsspeedpy), `experiments/speed.py`)
+- [ ] (starter) Add generation speed to `experiments/speed.py`
 - [ ] (GPU) Run the tests and a short training run on an MI300X and report what breaks
 
 ### Data ([DATA.md](DATA.md), `exealm/data/`)
 - [ ] Download and stage every DATA.md source: parallel, resumable, checksummed (build and test it on samples)
 - [ ] (starter) Count tokens in each K2 Horizon subset (streams, no big download)
 - [ ] (starter) Write a formatter for each K2 Horizon subset, since their fields differ
-- [ ] Remove near-duplicates across all sources (MinHash LSH, runs on a CPU)
+- [x] Remove near-duplicates across all sources (MinHash LSH, runs on a CPU): `python -m exealm.data.dedup`
 - [ ] Decontaminate against every benchmark we report
 - [ ] Filter personal data and toxicity
 - [ ] Quality classifier for Japanese web text (small classifier, Colab-sized)
 - [ ] Mix ablations: three or four versions of the mix with the `small` preset; the best two get confirmed at 0.1B **(GPU)**
-- [ ] Streaming loader with per-source weights
+- [ ] Streaming loader with per-source weights over many shard files (`MultiShards` in `loader.py` mixes one file per source)
 - [ ] (starter) Data card: every source, license, filter and token count
 
 ### Tokenizer (`exealm/data/tokenizer.py`)
-- [ ] Train 32k, 49k and 64k candidates; compare bytes per token on English, Japanese and code (CPU)
-- [ ] Pick by `small`-preset loss and publish on Hugging Face
+- [x] Train 32k, 49k and 64k candidates and compare them by bytes per token and small-model loss: 32k wins or ties ([results](results/README.md#4-tokenizer-size-experimentstokenizer_comparepy-experimentstokenizer_lmpy))
+- [ ] Re-check 32k against 49k on a bigger model, then publish the tokenizer on Hugging Face
 - [ ] Final special tokens: chat roles, agent roles, board
 
 ### Training (`exealm/train/pretrain.py`)
 - [ ] Multi-GPU: DDP, then FSDP (DDP is testable on a CPU with two processes)
-- [ ] Exact resume from checkpoints
+- [x] Exact resume from checkpoints (`--save_every`, `--stop_at`, `--resume auto`)
 - [ ] Weights & Biases logging
 - [ ] Context extension near the end of training
 - [ ] Optimizer: Muon vs AdamW (`small` preset)
@@ -239,6 +291,9 @@ exealm/
   train/                 pretrain, sft, dpo, grpo
   eval/                  evaluation plan
 docs/                    architecture, memory (RAG + agents), swarms, data, training, ideas
+experiments/             one script per experiment (swarm relay, swarms on text, RAG lookup, RAG on text,
+                         tokenizer, TONN vs Llama, speed)
+results/                 what they found: results/README.md, plus the raw JSON and logs
 tests/                   run with pytest
 ```
 

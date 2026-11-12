@@ -1,0 +1,61 @@
+{
+ "args": {
+  "root": "data/tokpack",
+  "toks": "bpe32k",
+  "mix": "0.5,0.3,0.2",
+  "steps": 3000,
+  "batch": 32,
+  "seq": 512,
+  "lr": 0.002,
+  "eval_batches": 16,
+  "models": "tonn_core_search",
+  "seeds": "0,1",
+  "cfg": "{\"attn_layers\": [1, 3, 5]}",
+  "tag": "hyb135_search",
+  "device": "mps",
+  "out": "results/sweep"
+ },
+ "device": "mps",
+ "rows": [
+  {
+   "model": "tonn_core_search",
+   "tag": "hyb135_search",
+   "cfg": "{\"attn_layers\": [1, 3, 5]}",
+   "lr": 0.002,
+   "seed": 0,
+   "tokenizer": "bpe32k",
+   "vocab": 32768,
+   "params_M": 13.1,
+   "steps": 3000,
+   "tokens_seen": 49152000,
+   "bytes_seen": 193458598,
+   "secs": 663.5,
+   "bits_per_byte": {
+    "en": 1.4484,
+    "ja_wiki": 1.5171,
+    "ja_web": 1.4003,
+    "code": 1.7336
+   }
+  },
+  {
+   "model": "tonn_core_search",
+   "tag": "hyb135_search",
+   "cfg": "{\"attn_layers\": [1, 3, 5]}",
+   "lr": 0.002,
+   "seed": 1,
+   "tokenizer": "bpe32k",
+   "vocab": 32768,
+   "params_M": 13.1,
+   "steps": 3000,
+   "tokens_seen": 49152000,
+   "bytes_seen": 193458598,
+   "secs": 664.8,
+   "bits_per_byte": {
+    "en": 1.4553,
+    "ja_wiki": 1.5429,
+    "ja_web": 1.407,
+    "code": 1.9325
+   }
+  }
+ ]
+}

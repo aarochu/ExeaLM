@@ -5,9 +5,9 @@ import torch
 from exealm import AgentBoard, Datastore, ExeaLM, MemoryContext, get_config
 
 
-def setup(swarm_size=1, B=2, T=40, seed=0):
+def setup(swarm_size=1, B=2, T=40, seed=0, **kw):
     torch.manual_seed(seed)
-    cfg = get_config("tiny", swarm_size=swarm_size)
+    cfg = get_config("tiny", swarm_size=swarm_size, **kw)
     m = ExeaLM(cfg)
     ds = Datastore(torch.randint(0, cfg.vocab_size, (50, cfg.rag_chunk_len)), torch.arange(50) % 7)
     ds.refresh(m.encoder, m.emb)
@@ -20,8 +20,12 @@ def setup(swarm_size=1, B=2, T=40, seed=0):
     return cfg, m, x, mem
 
 
-def test_retrieval_and_board_are_causal_for_one_agent():
-    cfg, m, x, mem = setup()
+import pytest  # noqa: E402
+
+
+@pytest.mark.parametrize("query", ["last", "mean"])
+def test_retrieval_and_board_are_causal_for_one_agent(query):
+    cfg, m, x, mem = setup(rag_query=query)
     t = 21
     x2 = x.clone()
     x2[0, t] = (x2[0, t] + 1) % cfg.vocab_size
@@ -67,7 +71,7 @@ def test_gradients_reach_the_models_own_retrieval_encoder():
     m.train()
     m(x, mem, x)[1].backward()
     assert m.encoder.key.weight.grad is not None and m.encoder.key.weight.grad.abs().sum() > 0
-    assert m.layers[0].rg.kv.weight.grad.abs().sum() > 0
+    assert m.layers[0].rg.alpha.grad is not None and m.layers[0].inp.weight.grad.abs().sum() > 0
 
 
 def test_persistent_board_shares_messages_between_agents():
@@ -115,3 +119,41 @@ def test_the_split_seam_target_really_leaks_through_the_board():
     with torch.no_grad():
         a, b = m(x, MemoryContext(swarm_size=2))[0], m(x2, MemoryContext(swarm_size=2))[0]
     assert not torch.allclose(a[0, -1], b[0, -1])
+
+
+def test_datastore_returns_k_results_even_when_the_own_document_dominates():
+    keys = torch.nn.functional.normalize(torch.randn(200, 8), dim=-1)
+    doc = torch.zeros(200, dtype=torch.long)
+    doc[190:] = torch.arange(1, 11)                       # 190 chunks of document 0, 10 chunks of other documents
+    ds = Datastore(torch.zeros(200, 4, dtype=torch.long), doc)
+    ds.keys = keys
+    idx, ok = ds.search(keys[:5], 4, exclude=torch.zeros(5, dtype=torch.long))
+    assert ok.all() and (ds.doc_ids[idx] != 0).all()
+
+
+def test_larger_retrieval_keys_work_and_stay_causal():
+    cfg, m, x, mem = setup(rag_key_dim=24)
+    assert m.encoder.key.out_features == 24 and mem.datastore.keys.shape[1] == 24
+    x2 = x.clone()
+    x2[0, 21] = (x2[0, 21] + 1) % cfg.vocab_size
+    with torch.no_grad():
+        a, b = m(x, mem)[0], m(x2, mem)[0]
+    assert torch.allclose(a[:, :21], b[:, :21], atol=1e-5)
+
+
+def test_lexical_keys_match_chunks_that_share_rare_words():
+    cfg = get_config("tiny", rag_lexical=16)
+    m = ExeaLM(cfg)
+    common = torch.full((8,), 5)
+    a = common.clone(); a[2], a[5] = 200, 201                 # two chunks sharing two rare tokens
+    b = common.clone(); b[1], b[6] = 200, 201
+    c = common.clone(); c[3], c[4] = 150, 151                 # a chunk with different rare tokens
+    store = torch.stack([a, b, c] + [torch.full((8,), 5)] * 20)
+    m.encoder.set_idf(store)
+    assert m.encoder.idf[200] > m.encoder.idf[5]
+    lex = lambda t: torch.nn.functional.normalize((m.encoder.lex[t] * m.encoder.idf[t].unsqueeze(-1)).sum(0), dim=-1)
+    assert float(lex(a) @ lex(b)) > float(lex(a) @ lex(c))
+    ds = Datastore(store, torch.arange(len(store)))
+    ds.refresh(m.encoder, m.emb)
+    assert ds.keys.shape[1] == cfg.h + 16
+

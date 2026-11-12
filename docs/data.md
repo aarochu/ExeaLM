@@ -60,6 +60,7 @@ At 100B tokens nothing needs repeating: we select from roughly 40T available.
 | `sources.py` | Both candidate mixes as data, plus the LLM-jp sub-corpora and K2 Horizon subsets with their licenses. |
 | `download.py` | Fetches a sample: LLM-jp files directly (no account), or any Hugging Face dataset by streaming. |
 | `quality.py` | Rule-based filters (with separate rules for Japanese) and exact deduplication. |
+| `dedup.py` | Near-duplicate removal across all sources: MinHash LSH (word 5-grams, character 5-grams for Japanese), CPU only. |
 | `tokenizer.py` | Trains a byte-level BPE tokenizer on a sample. |
 | `pack.py` | Tokenizes documents into one flat token file per split, keeping document boundaries. Retrieval needs them so it can skip the document being read. |
 | `loader.py` | Training batches: random windows, the document id of each position, and swarms ([swarms.md](swarms.md)). |
@@ -74,17 +75,20 @@ python -m exealm.data.download hf --repo IFM/TxT360-v2 --config web-high-medium 
 # 2. filter + exact dedupe
 python -m exealm.data.quality data/raw/*.jsonl.gz --out data/filtered
 
-# 3. tokenizer (on a sample of the mix)
-python -m exealm.data.tokenizer data/filtered/*.jsonl.gz --vocab 49152 --out tokenizer
+# 3. near-duplicates across all sources (the first copy wins, so list the best source first)
+python -m exealm.data.dedup data/filtered/*.jsonl.gz --out data/dedup
 
-# 4. pack into a flat token file with document boundaries (hold out a file as validation)
-python -m exealm.data.pack data/filtered/<train files> --tokenizer tokenizer --out data/packed/train
-python -m exealm.data.pack data/filtered/<val file>    --tokenizer tokenizer --out data/packed/val
+# 4. tokenizer (on a sample of the mix)
+python -m exealm.data.tokenizer data/dedup/*.jsonl.gz --vocab 49152 --out tokenizer
 
-# 5. train the 17M "small" model on it (laptop or a free Colab GPU)
+# 5. pack into a flat token file with document boundaries (hold out a file as validation)
+python -m exealm.data.pack data/dedup/<train files> --tokenizer tokenizer --out data/packed/train
+python -m exealm.data.pack data/dedup/<val file>    --tokenizer tokenizer --out data/packed/val
+
+# 6. train the 17M "small" model on it (laptop or a free Colab GPU)
 python -m exealm.train.pretrain --preset small --data data/packed/train --val data/packed/val --seq 256 --steps 2000
 ```
 
-The open data tasks are in the README's [to-do list](../README.md#to-do-list): counting tokens, near-duplicate
-removal, decontamination, a Japanese quality classifier, swarm construction, the retrieval datastore, and scaling the
+The open data tasks are in the README's [to-do list](../README.md#to-do-list): counting tokens,
+decontamination, a Japanese quality classifier, swarm construction, the retrieval datastore, and scaling the
 download.

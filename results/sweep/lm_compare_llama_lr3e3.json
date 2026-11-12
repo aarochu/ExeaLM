@@ -1,0 +1,59 @@
+{
+ "args": {
+  "root": "data/tokpack",
+  "toks": "bpe32k",
+  "mix": "0.5,0.3,0.2",
+  "steps": 3000,
+  "seconds": 0,
+  "batch": 32,
+  "seq": 512,
+  "lr": 0.003,
+  "eval_batches": 16,
+  "models": "llama",
+  "seeds": "0",
+  "cfg": "{}",
+  "size": "{}",
+  "tag": "llama_lr3e3",
+  "device": "mps",
+  "out": "results/sweep"
+ },
+ "device": "mps",
+ "rows": [
+  {
+   "model": "llama",
+   "tag": "llama_lr3e3",
+   "cfg": "{}",
+   "lr": 0.003,
+   "seed": 0,
+   "tokenizer": "bpe32k",
+   "vocab": 32768,
+   "params_M": 13.1,
+   "steps": 3000,
+   "seconds_budget": 0,
+   "tokens_seen": 49152000,
+   "bytes_seen": 193458598,
+   "secs": 505.0,
+   "bits_per_byte": {
+    "en": 1.4651,
+    "ja_wiki": 1.5385,
+    "ja_web": 1.4152,
+    "code": 1.7693
+   },
+   "architecture": null,
+   "train_loss_every_250": [
+    7.4089,
+    5.9582,
+    5.3899,
+    4.9726,
+    4.7412,
+    4.6337,
+    4.5237,
+    4.4491,
+    4.4024,
+    4.3269,
+    4.2091,
+    4.0648
+   ]
+  }
+ ]
+}

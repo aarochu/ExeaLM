@@ -73,3 +73,33 @@ class SyntheticShards:
 
     doc_of = TokenShards.doc_of
     batch = TokenShards.batch
+
+
+class MultiShards:
+    """Several packed sources mixed by weight (default: by token count), e.g. English, Japanese and code packed
+    separately. Each swarm (or each row, without swarms) draws all its windows from one source. Document ids stay
+    unique across sources. Same batch() interface as TokenShards.
+      TODO(data): stream from many shard files per source instead of one file each."""
+
+    def __init__(self, paths, weights=None):
+        self.sources = [TokenShards(p) for p in paths]
+        sizes = np.array([s.meta["n_tokens"] for s in self.sources], dtype=float)
+        w = np.array(weights, dtype=float) if weights is not None else sizes
+        self.p = w / w.sum()
+        self.doc_base = np.concatenate([[0], np.cumsum([len(s.offsets) for s in self.sources])[:-1]])
+        m0 = self.sources[0].meta
+        self.meta = dict(vocab_size=m0["vocab_size"], n_tokens=int(sizes.sum()),
+                         n_docs=int(sum(len(s.offsets) for s in self.sources)),
+                         bytes_per_token=float(sum(s.meta["bytes_per_token"] * s.meta["n_tokens"] for s in self.sources)
+                                               / sizes.sum()))
+
+    def batch(self, B, T, rng, swarm_size=1, policy="random", p_split=0.5):
+        g = swarm_size if (swarm_size > 1 and B % swarm_size == 0) else 1
+        xs, ys, ds = [], [], []
+        for _ in range(B // g):
+            i = int(rng.choice(len(self.sources), p=self.p))
+            x, y, d = self.sources[i].batch(g, T, rng, g, policy, p_split)
+            xs.append(x)
+            ys.append(y)
+            ds.append(d + int(self.doc_base[i]))
+        return torch.cat(xs), torch.cat(ys), torch.cat(ds)

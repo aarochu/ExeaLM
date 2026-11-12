@@ -1,0 +1,62 @@
+{
+ "args": {
+  "train": [
+   "/Users/avneh/lm_work/src/sample/10BT/000_00000.parquet",
+   "data/tok/llmjp__ja__ja_wiki__0000.first60MB.jsonl.gz",
+   "data/tok/llmjp__ja__ja_fineweb-2__0000.first100MB.jsonl.gz",
+   "data/tok/llmjp__code__code_stack__0000.first80MB.jsonl.gz"
+  ],
+  "max_mb": 200.0,
+  "heldout": [
+   "en=/Users/avneh/lm_work/src/sample/10BT/001_00000.parquet",
+   "ja_wiki=data/tok/llmjp__ja__ja_wiki__0001.first5MB.jsonl.gz",
+   "ja_web=data/tok/llmjp__ja__ja_fineweb-2__0001.first5MB.jsonl.gz",
+   "code=data/tok/llmjp__code__code_stack__0001.first5MB.jsonl.gz"
+  ],
+  "heldout_mb": 5,
+  "vocabs": "32768,49152,65536",
+  "d": 640,
+  "out": "results/tokenizer"
+ },
+ "rows": [
+  {
+   "vocab": 32768,
+   "train_secs": 109.0,
+   "embedding_params_M": 21.0,
+   "bytes_per_token_en": 4.381,
+   "heldout_bytes_en": 5004574,
+   "bytes_per_token_ja_wiki": 4.28,
+   "heldout_bytes_ja_wiki": 5000715,
+   "bytes_per_token_ja_web": 5.362,
+   "heldout_bytes_ja_web": 5004271,
+   "bytes_per_token_code": 2.67,
+   "heldout_bytes_code": 5259318
+  },
+  {
+   "vocab": 49152,
+   "train_secs": 113.6,
+   "embedding_params_M": 31.5,
+   "bytes_per_token_en": 4.553,
+   "heldout_bytes_en": 5004574,
+   "bytes_per_token_ja_wiki": 4.544,
+   "heldout_bytes_ja_wiki": 5000715,
+   "bytes_per_token_ja_web": 5.749,
+   "heldout_bytes_ja_web": 5004271,
+   "bytes_per_token_code": 2.768,
+   "heldout_bytes_code": 5259318
+  },
+  {
+   "vocab": 65536,
+   "train_secs": 120.3,
+   "embedding_params_M": 41.9,
+   "bytes_per_token_en": 4.655,
+   "heldout_bytes_en": 5004574,
+   "bytes_per_token_ja_wiki": 4.723,
+   "heldout_bytes_ja_wiki": 5000715,
+   "bytes_per_token_ja_web": 6.025,
+   "heldout_bytes_ja_web": 5004271,
+   "bytes_per_token_code": 2.828,
+   "heldout_bytes_code": 5259318
+  }
+ ]
+}

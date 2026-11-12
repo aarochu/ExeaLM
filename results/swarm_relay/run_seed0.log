@@ -1,0 +1,25 @@
+{"arm": "swarm", "step": 250, "secs": 7.9, "shared": {"acc": 0.981, "bits": 0.344}, "cut": {"acc": 0.0107, "bits": 9.995}}
+{"arm": "swarm", "step": 500, "secs": 15.1, "shared": {"acc": 0.9873, "bits": 0.106}, "cut": {"acc": 0.0181, "bits": 14.424}}
+{"arm": "swarm", "step": 750, "secs": 22.3, "shared": {"acc": 0.9956, "bits": 0.037}, "cut": {"acc": 0.0181, "bits": 17.394}}
+{"arm": "swarm", "step": 1000, "secs": 29.4, "shared": {"acc": 0.9976, "bits": 0.037}, "cut": {"acc": 0.0151, "bits": 18.022}}
+{"arm": "swarm", "step": 1250, "secs": 36.5, "shared": {"acc": 0.9985, "bits": 0.03}, "cut": {"acc": 0.0171, "bits": 19.333}}
+{"arm": "swarm", "step": 1500, "secs": 43.7, "shared": {"acc": 0.9976, "bits": 0.043}, "cut": {"acc": 0.0161, "bits": 20.274}}
+{"arm": "swarm", "step": 1750, "secs": 50.8, "shared": {"acc": 0.9995, "bits": 0.002}, "cut": {"acc": 0.0151, "bits": 20.286}}
+{"arm": "swarm", "step": 2000, "secs": 57.9, "shared": {"acc": 0.998, "bits": 0.015}, "cut": {"acc": 0.0103, "bits": 22.335}}
+{"arm": "swarm", "step": 2250, "secs": 65.0, "shared": {"acc": 0.9976, "bits": 0.023}, "cut": {"acc": 0.0156, "bits": 22.779}}
+{"arm": "swarm", "step": 2500, "secs": 72.1, "shared": {"acc": 0.9932, "bits": 0.084}, "cut": {"acc": 0.0186, "bits": 19.724}}
+{"arm": "swarm", "step": 2750, "secs": 79.1, "shared": {"acc": 0.999, "bits": 0.014}, "cut": {"acc": 0.0146, "bits": 22.987}}
+{"arm": "swarm", "step": 3000, "secs": 86.1, "shared": {"acc": 0.998, "bits": 0.027}, "cut": {"acc": 0.0151, "bits": 21.956}}
+{"arm": "solo", "step": 250, "secs": 6.8, "shared": {"acc": 0.0161, "bits": 6.042}, "cut": {"acc": 0.0161, "bits": 6.042}}
+{"arm": "solo", "step": 500, "secs": 13.9, "shared": {"acc": 0.0161, "bits": 6.02}, "cut": {"acc": 0.0161, "bits": 6.02}}
+{"arm": "solo", "step": 750, "secs": 21.0, "shared": {"acc": 0.0122, "bits": 6.024}, "cut": {"acc": 0.0122, "bits": 6.024}}
+{"arm": "solo", "step": 1000, "secs": 28.2, "shared": {"acc": 0.0176, "bits": 6.01}, "cut": {"acc": 0.0176, "bits": 6.01}}
+{"arm": "solo", "step": 1250, "secs": 35.3, "shared": {"acc": 0.0122, "bits": 6.006}, "cut": {"acc": 0.0122, "bits": 6.006}}
+{"arm": "solo", "step": 1500, "secs": 42.4, "shared": {"acc": 0.022, "bits": 6.002}, "cut": {"acc": 0.022, "bits": 6.002}}
+{"arm": "solo", "step": 1750, "secs": 49.6, "shared": {"acc": 0.0166, "bits": 6.003}, "cut": {"acc": 0.0161, "bits": 6.003}}
+{"arm": "solo", "step": 2000, "secs": 56.7, "shared": {"acc": 0.0137, "bits": 6.001}, "cut": {"acc": 0.0137, "bits": 6.001}}
+{"arm": "solo", "step": 2250, "secs": 63.9, "shared": {"acc": 0.0127, "bits": 6.004}, "cut": {"acc": 0.0127, "bits": 6.004}}
+{"arm": "solo", "step": 2500, "secs": 70.9, "shared": {"acc": 0.0166, "bits": 6.002}, "cut": {"acc": 0.0166, "bits": 6.002}}
+{"arm": "solo", "step": 2750, "secs": 78.1, "shared": {"acc": 0.0166, "bits": 6.0}, "cut": {"acc": 0.0166, "bits": 6.0}}
+{"arm": "solo", "step": 3000, "secs": 85.2, "shared": {"acc": 0.022, "bits": 6.001}, "cut": {"acc": 0.022, "bits": 6.001}}
+WROTE results/swarm_relay/relay_seed0.json

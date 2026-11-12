@@ -1,0 +1,111 @@
+{
+ "args": {
+  "wiki": "data/tokpack/bpe32k/store_wiki",
+  "arms": "rag,none",
+  "chunk": 64,
+  "min_tokens": 1024,
+  "eval_frac": 0.1,
+  "refresh_every": 500,
+  "steps": 3000,
+  "batch": 32,
+  "seq": 256,
+  "lr": 0.002,
+  "eval_every": 1000,
+  "eval_batches": 16,
+  "seed": 1,
+  "neighbour": 0.1,
+  "tag": "lex",
+  "oracle": 0,
+  "key_dim": 128,
+  "lexical": 128,
+  "device": "mps",
+  "out": "results/rag_wiki_split"
+ },
+ "device": "mps",
+ "runs": [
+  {
+   "arm": "rag",
+   "params": 13338328,
+   "final": {
+    "arm": "rag",
+    "step": 3000,
+    "secs": 491.3,
+    "attached": 5.2808,
+    "removed": 5.2849,
+    "same_article_hits": 0.2905,
+    "retrieval_gain": 0.0041
+   },
+   "curve": [
+    {
+     "arm": "rag",
+     "step": 1000,
+     "secs": 162.7,
+     "attached": 6.1333,
+     "removed": 6.1439,
+     "same_article_hits": 0.2773,
+     "retrieval_gain": 0.0106
+    },
+    {
+     "arm": "rag",
+     "step": 2000,
+     "secs": 327.0,
+     "attached": 5.6873,
+     "removed": 5.6911,
+     "same_article_hits": 0.2769,
+     "retrieval_gain": 0.0038
+    },
+    {
+     "arm": "rag",
+     "step": 3000,
+     "secs": 491.3,
+     "attached": 5.2808,
+     "removed": 5.2849,
+     "same_article_hits": 0.2905,
+     "retrieval_gain": 0.0041
+    }
+   ]
+  },
+  {
+   "arm": "none",
+   "params": 13338328,
+   "final": {
+    "arm": "none",
+    "step": 3000,
+    "secs": 269.6,
+    "attached": 5.2826,
+    "removed": 5.2786,
+    "same_article_hits": 0.2461,
+    "retrieval_gain": -0.004
+   },
+   "curve": [
+    {
+     "arm": "none",
+     "step": 1000,
+     "secs": 88.9,
+     "attached": 6.1019,
+     "removed": 6.0974,
+     "same_article_hits": 0.2427,
+     "retrieval_gain": -0.0045
+    },
+    {
+     "arm": "none",
+     "step": 2000,
+     "secs": 179.2,
+     "attached": 5.6895,
+     "removed": 5.6851,
+     "same_article_hits": 0.249,
+     "retrieval_gain": -0.0044
+    },
+    {
+     "arm": "none",
+     "step": 3000,
+     "secs": 269.6,
+     "attached": 5.2826,
+     "removed": 5.2786,
+     "same_article_hits": 0.2461,
+     "retrieval_gain": -0.004
+    }
+   ]
+  }
+ ]
+}

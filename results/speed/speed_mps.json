@@ -1,0 +1,48 @@
+{
+ "args": {
+  "preset": "100m",
+  "batch": 8,
+  "seq": 2048,
+  "warmup": 2,
+  "reps": 5,
+  "datastore_chunks": 100000,
+  "device": "mps",
+  "out": "results/speed"
+ },
+ "device": "mps",
+ "rows": [
+  {
+   "name": "llama",
+   "params_M": 100.2,
+   "batch": 8,
+   "seq": 2048,
+   "secs_per_step": 1.438,
+   "tokens_per_sec": 11393
+  },
+  {
+   "name": "tonn, memory idle",
+   "params_M": 103.4,
+   "batch": 8,
+   "seq": 2048,
+   "secs_per_step": 2.209,
+   "tokens_per_sec": 7417
+  },
+  {
+   "name": "tonn, retrieval on",
+   "params_M": 103.4,
+   "batch": 8,
+   "seq": 2048,
+   "secs_per_step": 3.818,
+   "tokens_per_sec": 4291
+  },
+  {
+   "name": "tonn, retrieval on + swarms of 4",
+   "params_M": 103.4,
+   "batch": 8,
+   "seq": 2048,
+   "secs_per_step": 3.851,
+   "tokens_per_sec": 4255
+  }
+ ],
+ "datastore_refresh_secs": 1.66
+}

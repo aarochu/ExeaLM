@@ -65,3 +65,29 @@
 2026-11-11 13:53:12 START eqt_big_llama_s1
 2026-11-11 14:26:49 END eqt_big_llama_s1 {"model": "llama", "tag": "eqt_big_llama_s1", "cfg": "{}", "lr": 0.001, "seed": 1, "tokenizer": "bpe32k", "vocab": 32768, "params_M": 48.16, "steps": 4176, "seconds_budget": 2000.0, "tokens_seen": 684
 2026-11-11 14:26:49 START ragwiki_hybrid
+2026-11-11 14:53:50 END ragwiki_hybrid WROTE results/rag_wiki/rag_text_seed0.json
+2026-11-11 14:53:50 START speed_hybrid21
+2026-11-11 14:54:48 END speed_hybrid21 {"datastore_refresh_secs": 1.58, "chunks": 100000}
+2026-11-11 14:54:48 START swarmtext_hybrid
+2026-11-11 15:09:31 END swarmtext_hybrid WROTE results/swarm_text_hybrid/text_seed0.json
+2026-11-11 15:09:31 START ragwikisplit
+2026-11-11 15:21:50 END ragwikisplit WROTE results/rag_wiki_split/rag_wiki_split_seed0.json
+2026-11-11 15:21:50 START ragwikisplit_ict
+2026-11-11 15:29:49 END ragwikisplit_ict WROTE results/rag_wiki_split/rag_wiki_split_ict_seed0.json
+2026-11-11 15:29:49 START ragwikisplit_oracle
+2026-11-11 15:37:16 END ragwikisplit_oracle WROTE results/rag_wiki_split/rag_wiki_split_oracle_seed0.json
+2026-11-11 15:37:16 START swarmtext_hybrid_s1
+2026-11-11 15:51:34 END swarmtext_hybrid_s1 WROTE results/swarm_text_hybrid/text_seed1.json
+2026-11-11 15:51:34 START ragwikisplit_k128
+2026-11-11 15:59:39 END ragwikisplit_k128 WROTE results/rag_wiki_split/rag_wiki_split_k128_seed0.json
+2026-11-11 15:59:39 START ragwikisplit_k128_n1
+2026-11-11 16:07:44 END ragwikisplit_k128_n1 WROTE results/rag_wiki_split/rag_wiki_split_k128n1_seed0.json
+2026-11-11 16:07:44 START ragwikisplit_lex
+2026-11-11 16:16:02 END ragwikisplit_lex WROTE results/rag_wiki_split/rag_wiki_split_lex_seed0.json
+2026-11-11 16:16:02 START hconv_024
+2026-11-11 16:35:03 END hconv_024 {"model": "tonn_core", "tag": "hconv_024", "cfg": "{\"attn_layers\": [0, 2, 4], \"init_weights\": {\"C\": 4, \"G\": 0.25, \"D\": 0.25}}", "lr": 0.002, "seed": 1, "tokenizer": "bpe32k", "vocab": 32768,
+2026-11-11 16:35:03 START ragwikisplit_lex_s1
+2026-11-11 16:47:50 END ragwikisplit_lex_s1 WROTE results/rag_wiki_split/rag_wiki_split_lex_seed1.json
+2026-11-11 16:47:50 START hconv_25
+2026-11-11 17:07:32 END hconv_25 {"model": "tonn_core", "tag": "hconv_25", "cfg": "{\"attn_layers\": [2, 5], \"init_weights\": {\"C\": 4, \"G\": 0.25, \"D\": 0.25}}", "lr": 0.002, "seed": 1, "tokenizer": "bpe32k", "vocab": 32768, "pa
+2026-11-11 17:07:32 START eqt_100m_hybrid

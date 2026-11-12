@@ -1,0 +1,5 @@
+{"train_articles": 14209, "eval_articles": 1578, "library_train": 483270, "library_eval": 53467}
+{"arm": "rag", "step": 1000, "secs": 163.4, "attached": 6.2369, "removed": 6.26, "same_article_hits": 0.3027, "retrieval_gain": 0.0231}
+{"arm": "rag", "step": 2000, "secs": 328.6, "attached": 5.6811, "removed": 5.6872, "same_article_hits": 0.3052, "retrieval_gain": 0.0061}
+{"arm": "rag", "step": 3000, "secs": 493.8, "attached": 5.2563, "removed": 5.2603, "same_article_hits": 0.3164, "retrieval_gain": 0.004}
+WROTE results/rag_wiki_split/rag_wiki_split_lex_seed0.json

@@ -64,7 +64,8 @@ Rules that keep it honest:
   `--config solo.json` (`{"swarm_size": 1}`), same data and steps, then
   `python -m exealm.eval.swarm_vs_solo --ckpt <swarm run>/model.pt --baseline <solo run>/model.pt --data <val>`. It
   scores the same windows as a swarm, solo, and with the solo-trained model, on split swarms and on random swarms as
-  the control.
+  the control. (`experiments/swarm_text.py` runs a from-scratch version at 5M parameters that trains every arm itself,
+  including a matched control on the same split batches; results/README.md, section 2.)
 - Which swarm types teach the most, and in what mix?
 - Do agents end up specializing, and does accuracy rise with swarm size (2, 4, 8)?
 - Can the messages be decoded into text people can read?

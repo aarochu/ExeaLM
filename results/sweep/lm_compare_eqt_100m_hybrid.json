@@ -1,0 +1,117 @@
+{
+ "args": {
+  "root": "data/tokpack",
+  "toks": "bpe32k",
+  "mix": "0.5,0.3,0.2",
+  "steps": 3000,
+  "seconds": 3000.0,
+  "batch": 32,
+  "seq": 512,
+  "lr": 0.0015,
+  "eval_batches": 16,
+  "models": "tonn_core",
+  "seeds": "0",
+  "cfg": "{\"attn_layers\": [1, 2, 4, 5, 7, 8, 10, 11, 13], \"init_weights\": {\"C\": 4, \"G\": 0.25, \"D\": 0.25}}",
+  "size": "{\"d\": 640, \"n_layers\": 14, \"slots\": 20, \"h\": 32}",
+  "tag": "eqt_100m_hybrid",
+  "device": "mps",
+  "out": "results/sweep"
+ },
+ "device": "mps",
+ "rows": [
+  {
+   "model": "tonn_core",
+   "tag": "eqt_100m_hybrid",
+   "cfg": "{\"attn_layers\": [1, 2, 4, 5, 7, 8, 10, 11, 13], \"init_weights\": {\"C\": 4, \"G\": 0.25, \"D\": 0.25}}",
+   "lr": 0.0015,
+   "seed": 0,
+   "tokenizer": "bpe32k",
+   "vocab": 32768,
+   "params_M": 89.74,
+   "steps": 3151,
+   "seconds_budget": 3000.0,
+   "tokens_seen": 51625984,
+   "bytes_seen": 203196014,
+   "secs": 3013.7,
+   "bits_per_byte": {
+    "en": 1.3861,
+    "ja_wiki": 1.462,
+    "ja_web": 1.3468,
+    "code": 1.7016
+   },
+   "architecture": [
+    {
+     "RP": 2,
+     "MI": 3,
+     "EP": 2,
+     "MIM": 1,
+     "OS": 2,
+     "SM": 2,
+     "G": 1,
+     "GI": 2,
+     "C": 2,
+     "M": 2,
+     "I": 1
+    },
+    {
+     "C": 7,
+     "RP": 3,
+     "OS": 1,
+     "EP": 1,
+     "MIM": 2,
+     "M": 1,
+     "G": 1,
+     "SM": 3,
+     "I": 1
+    },
+    {
+     "EP": 2,
+     "RP": 3,
+     "I": 3,
+     "C": 5,
+     "OS": 2,
+     "G": 1,
+     "M": 1,
+     "MIM": 2,
+     "MI": 1
+    },
+    {
+     "C": 9,
+     "D": 1,
+     "SM": 2,
+     "GI": 4,
+     "EP": 1,
+     "RP": 1,
+     "MIM": 1,
+     "I": 1
+    },
+    {
+     "SM": 3,
+     "MI": 1,
+     "RP": 4,
+     "C": 3,
+     "EP": 1,
+     "MIM": 2,
+     "M": 2,
+     "GI": 2,
+     "I": 1,
+     "OS": 1
+    }
+   ],
+   "train_loss_every_250": [
+    7.0343,
+    5.5847,
+    5.1249,
+    4.7865,
+    4.5692,
+    4.4635,
+    4.3483,
+    4.2627,
+    4.2077,
+    4.1289,
+    4.0429,
+    3.8843
+   ]
+  }
+ ]
+}

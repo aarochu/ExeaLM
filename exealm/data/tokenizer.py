@@ -10,33 +10,36 @@ context) but leave fewer parameters for everything else. 49,152 is a placeholder
 python -m exealm.data.tokenizer data/filtered/*.jsonl.gz --vocab 49152 --out tokenizer/
 """
 import argparse
-import gzip
-import json
 import os
 
 SPECIAL = ["<|endoftext|>", "<|pad|>", "<|im_start|>", "<|im_end|>", "<|system|>", "<|user|>", "<|assistant|>",
            "<|tool|>", "<|retrieved|>", "<|board|>"]
 
 
-def texts(files, max_docs):
+def texts(files, max_docs, max_mb_per_file=None):
+    """Documents from jsonl.gz or Parquet files, at most max_mb_per_file MB of text from each file."""
+    from .pack import iter_texts
     n = 0
     for path in files:
-        with gzip.open(path, "rt", encoding="utf-8") as f:
-            for line in f:
-                yield json.loads(line)["text"]
-                n += 1
-                if n >= max_docs:
-                    return
+        got = 0
+        for t in iter_texts([path]):
+            yield t
+            n += 1
+            got += len(t.encode("utf-8"))
+            if n >= max_docs:
+                return
+            if max_mb_per_file and got >= max_mb_per_file * 1e6:
+                break
 
 
-def train(files, vocab, out, max_docs=2_000_000):
+def train(files, vocab, out, max_docs=2_000_000, max_mb_per_file=None):
     from tokenizers import Tokenizer, decoders, models, pre_tokenizers, trainers
     tok = Tokenizer(models.BPE(byte_fallback=False))
     tok.pre_tokenizer = pre_tokenizers.ByteLevel(add_prefix_space=False)
     tok.decoder = decoders.ByteLevel()
     tr = trainers.BpeTrainer(vocab_size=vocab, special_tokens=SPECIAL, min_frequency=2,
                              initial_alphabet=pre_tokenizers.ByteLevel.alphabet())
-    tok.train_from_iterator(texts(files, max_docs), trainer=tr)
+    tok.train_from_iterator(texts(files, max_docs, max_mb_per_file), trainer=tr)
     os.makedirs(out, exist_ok=True)
     tok.save(os.path.join(out, "tokenizer.json"))
     return tok

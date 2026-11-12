@@ -1,0 +1,5 @@
+{"train_articles": 14209, "eval_articles": 1578, "library_train": 483270, "library_eval": 53467}
+{"arm": "rag", "step": 1000, "secs": 159.6, "attached": 6.5653, "removed": 6.5642, "same_article_hits": 0.0884, "retrieval_gain": -0.0011}
+{"arm": "rag", "step": 2000, "secs": 320.6, "attached": 5.9108, "removed": 5.9086, "same_article_hits": 0.0952, "retrieval_gain": -0.0022}
+{"arm": "rag", "step": 3000, "secs": 481.4, "attached": 5.4128, "removed": 5.4126, "same_article_hits": 0.1294, "retrieval_gain": -0.0002}
+WROTE results/rag_wiki_split/rag_wiki_split_k128n1_seed0.json

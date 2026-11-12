@@ -1,10 +1,13 @@
 """Model configuration.
 
-Three presets:
-    "100m"   the model we plan to train: 101M parameters (31M of them the embedding table), on about 100B tokens
-    "small"  17M parameters (13M embedding table) with the same vocabulary: for real-data experiments on a laptop or a
-             free Colab GPU
-    "tiny"   for tests and quick checks on synthetic data Every number here is a starting point, not a decision: changing them is one of the easiest ways to contribute
+Presets:
+    "100m"        the model we plan to train: 101M parameters (31M of them the embedding table), on about 100B tokens;
+                  a hybrid (every third layer TONN, the others attention)
+    "100m-tonn"   the same size, every layer TONN
+    "small"       17M parameters (13M embedding table) with the same vocabulary, hybrid: for real-data experiments on
+                  a laptop or a free Colab GPU
+    "small-tonn"  the same size, every layer TONN (the base the experiment scripts start from)
+    "tiny"        for tests and quick checks on synthetic data Every number here is a starting point, not a decision: changing them is one of the easiest ways to contribute
 (see docs/ideas.md), as long as the change wins a fair comparison first (CONTRIBUTING.md).
 """
 import json
@@ -29,12 +32,17 @@ class ModelConfig:
     tie_embeddings: bool = True
     # Circuits every layer is guaranteed: each layer starts with this many and the search never goes below it.
     pinned: dict = field(default_factory=lambda: {"RG": 1, "AG": 1})
+    init_weights: dict = None        # relative chance of each type in the starting circuits (unlisted: 1)
+    attn_layers: tuple = ()          # layers that are a full multi-head attention block instead of a TONN layer
     seed: int = 0
     # memory circuits
     chunk: int = 64                  # RG retrieves and AG posts once per chunk of this many tokens
     rag_topk: int = 4                # datastore chunks each retrieval returns
     rag_chunk_len: int = 64          # tokens per stored datastore chunk
     enc_dim: int = 256               # width of the model's own chunk encoder (its retrieval embedding model)
+    rag_query: str = "last"          # RG query from the previous chunk's "last" position or its "mean"
+    rag_key_dim: int = 0             # size of retrieval keys (0: one circuit's width, h)
+    rag_lexical: int = 0             # extra lexical part of retrieval keys: rare-word codes of this size (0: off)
     swarm_size: int = 4              # agents that share one board (a swarm); a training batch holds many swarms
     board_read_self: bool = True     # may an agent read its own earlier posts?
 
@@ -48,15 +56,23 @@ class ModelConfig:
     @classmethod
     def from_dict(cls, d):
         d = dict(d)
-        for k in ("menu", "lags"):
+        for k in ("menu", "lags", "attn_layers"):
             if k in d:
                 d[k] = tuple(d[k])
         return cls(**d)
 
 
+# The default ExeaLM is a hybrid: every third layer is a TONN layer and the others are full attention layers, and
+# TONN's starting circuits favour short convolutions. Pure TONN lost to a same-size Llama on real tokens; the hybrid
+# beats it at equal size and steps (13M, 27M, 48M) and, with this 2:1 layout, at equal compute at 48M too, on both
+# seeds and every kind of text (results/README.md, sections 7 and 8).
+HYBRID = dict(init_weights={"C": 4.0, "G": 0.25, "D": 0.25})
+
 PRESETS = {
-    "100m": ModelConfig(),
-    "small": ModelConfig(d=256, n_layers=6, slots=8, h=32, enc_dim=128),
+    "100m": ModelConfig(attn_layers=tuple(i for i in range(14) if i % 3), **HYBRID),        # TONN at 0, 3, 6, 9, 12
+    "100m-tonn": ModelConfig(),
+    "small": ModelConfig(d=256, n_layers=6, slots=8, h=32, enc_dim=128, attn_layers=(1, 2, 4, 5), **HYBRID),
+    "small-tonn": ModelConfig(d=256, n_layers=6, slots=8, h=32, enc_dim=128),
     "tiny": ModelConfig(vocab_size=256, d=64, n_layers=2, slots=8, h=8, chunk=8, rag_topk=2, rag_chunk_len=8,
                         enc_dim=32, swarm_size=2),
 }

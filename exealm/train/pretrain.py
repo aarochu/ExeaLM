@@ -11,16 +11,24 @@ The fair comparison every architecture change must win (same data, same steps, s
 On real data, after exealm.data.pack:
     python -m exealm.train.pretrain --preset 100m --data data/packed/train --val data/packed/val --seq 2048 --batch 16
 
+Resuming: --save_every N writes the full training state to <out>/ckpt.pt every N steps (the model, the optimizer, the
+current architecture, every random number generator, the search's state and the datastore's keys). Pick the run up
+with --resume <out>/ckpt.pt, or --resume auto to use <out>/ckpt.pt if it exists. With the same arguments, a resumed run
+ends with exactly the weights an uninterrupted run would have (tested on CPU). --stop_at N saves and stops after step N
+without changing the learning-rate schedule, for sessions with a time limit such as Colab:
+    python -m exealm.train.pretrain --preset small --data data/packed/train --steps 20000 --save_every 500 \
+        --stop_at 5000 --resume auto      # run the same line again in the next session to continue
+
 Single GPU only for now.
   TODO(infra): multi-GPU (DDP first, then FSDP), with the datastore search sharded across GPUs.
-  TODO(infra): resume from a checkpoint; torch.compile; logging to Weights & Biases.
+  TODO(infra): torch.compile; logging to Weights & Biases.
 """
 import argparse
 import json
 import math
 import os
 import time
-from dataclasses import asdict
+from dataclasses import asdict, replace
 
 import numpy as np
 import torch
@@ -60,10 +68,14 @@ def make_optimizer(model, lr, wd):
                              lr=lr, betas=(0.9, 0.95), eps=1e-8)
 
 
-def save(path, model, opt, step, cfg, kind):
+def save(path, model, opt, step, cfg, kind, state=None):
+    """state: what else an exact resume needs (random generators, search, datastore keys, see main()). Written to a
+    temporary file first, so a run killed mid-save never leaves a broken checkpoint behind."""
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+    tmp = path + ".tmp"
     torch.save(dict(model=model.state_dict(), opt=opt.state_dict(), step=step, cfg=asdict(cfg), kind=kind,
-                    specs=getattr(model, "specs", None)), path)
+                    specs=getattr(model, "specs", None), state=state), tmp)
+    os.replace(tmp, path)
 
 
 def load_model(path, device="cpu"):
@@ -101,6 +113,11 @@ def main(argv=None):
     ap.add_argument("--device", default="auto")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--out", default="runs/pretrain")
+    ap.add_argument("--save_every", type=int, default=0, help="write <out>/ckpt.pt every this many steps (0: never)")
+    ap.add_argument("--resume", default=None,
+                    help="checkpoint to continue from, or 'auto' for <out>/ckpt.pt if it exists")
+    ap.add_argument("--stop_at", type=int, default=0,
+                    help="save <out>/ckpt.pt and stop after this step, keeping the --steps schedule (for time limits)")
     a = ap.parse_args(argv)
 
     torch.manual_seed(a.seed)
@@ -108,11 +125,27 @@ def main(argv=None):
     amp = dict(device_type="cuda", dtype=torch.bfloat16) if dev.type == "cuda" else None
     data = SyntheticShards() if a.data == "synthetic" else TokenShards(a.data)
     val = data if a.val is None else TokenShards(a.val)
-    over = json.load(open(a.config)) if a.config else {}
-    over["vocab_size"] = int(data.meta["vocab_size"])
-    cfg = get_config(a.preset, **over)
-    model = (ExeaLM(cfg) if a.model == "tonn" else Llama(cfg)).to(dev)
+    ckpt_path = os.path.join(a.out, "ckpt.pt")
+    resume = ckpt_path if a.resume == "auto" else a.resume
+    if a.resume == "auto" and not os.path.exists(ckpt_path):
+        resume = None
+    ck = torch.load(resume, map_location="cpu", weights_only=False) if resume else None
+    if ck is not None:
+        if ck["kind"] != a.model:
+            raise ValueError(f"checkpoint is a {ck['kind']} model, but --model is {a.model}")
+        if ck.get("state") is None:
+            raise ValueError(f"{resume} has no training state to resume from (saved before --save_every existed)")
+        cfg = ModelConfig.from_dict(ck["cfg"])                          # the run's own config and architecture
+        model = (ExeaLM(cfg, ck["specs"]) if a.model == "tonn" else Llama(cfg)).to(dev)
+        model.load_state_dict(ck["model"])
+    else:
+        over = json.load(open(a.config)) if a.config else {}
+        over["vocab_size"] = int(data.meta["vocab_size"])
+        cfg = get_config(a.preset, **over)
+        model = (ExeaLM(cfg) if a.model == "tonn" else Llama(cfg)).to(dev)
     opt = make_optimizer(model, a.lr, a.wd)
+    if ck is not None:
+        opt.load_state_dict(ck["opt"])
     warmup = a.warmup if a.warmup is not None else max(1, min(2000, a.steps // 20))
     swarm = cfg.swarm_size if a.model == "tonn" else 1
     rng = np.random.default_rng(a.seed)
@@ -140,13 +173,22 @@ def main(argv=None):
 
     @torch.no_grad()
     def evaluate():
+        """Validation bits. For swarms, also with the board cut (every agent alone): the difference is what the
+        agents gained from each other."""
         model.eval()
+        bpt = float(data.meta.get("bytes_per_token", 1.0))
         with torch.autocast(**amp) if amp else torch.no_grad():
             loss = sum(float(model(x, m, y)[1]) for x, y, m in val_batches) / len(val_batches)
+            cut = None
+            if swarm > 1:
+                cut = sum(float(model(x, replace(m, swarm_size=1), y)[1]) for x, y, m in val_batches) / len(val_batches)
         model.train()
         bits = loss / math.log(2)
-        return dict(val_bits_per_token=round(bits, 4),
-                    val_bits_per_byte=round(bits / float(data.meta.get("bytes_per_token", 1.0)), 4))
+        out = dict(val_bits_per_token=round(bits, 4), val_bits_per_byte=round(bits / bpt, 4))
+        if cut is not None:
+            out["val_bits_per_token_board_cut"] = round(cut / math.log(2), 4)
+            out["board_gain_bits_per_token"] = round((cut - loss) / math.log(2), 4)
+        return out
 
     os.makedirs(a.out, exist_ok=True)
     log = open(os.path.join(a.out, "log.jsonl"), "a")
@@ -156,10 +198,36 @@ def main(argv=None):
         log.write(json.dumps(rec) + "\n")
         log.flush()
 
-    emit(dict(event="start", model=a.model, params=count_params(model), device=str(dev), cfg=asdict(cfg),
-              architecture=model.architecture() if a.model == "tonn" else None))
-    t0, losses = time.time(), []
-    for step in range(a.steps):
+    def train_state(losses, secs):
+        """Everything besides the weights and the optimizer that the next step depends on."""
+        return dict(numpy_rng=rng.bit_generator.state, torch_rng=torch.get_rng_state(),
+                    cuda_rng=torch.cuda.get_rng_state_all() if torch.cuda.is_available() else None,
+                    searcher=None if searcher is None else dict(round=searcher.round, born=dict(searcher.born),
+                                                                rng=searcher.rng.getstate()),
+                    datastore=None if ds is None else dict(keys=ds.keys.cpu(), refreshed_at=ds.refreshed_at),
+                    losses=[float(l) for l in losses], secs=secs, total_steps=a.steps)
+
+    start, losses, done_secs = 0, [], 0.0
+    if ck is not None:
+        st = ck["state"]
+        start, done_secs = ck["step"], st["secs"]
+        rng.bit_generator.state = st["numpy_rng"]
+        torch.set_rng_state(st["torch_rng"])
+        if st.get("cuda_rng") is not None and torch.cuda.is_available():
+            torch.cuda.set_rng_state_all(st["cuda_rng"])
+        if searcher is not None and st["searcher"] is not None:
+            searcher.round, searcher.born = st["searcher"]["round"], dict(st["searcher"]["born"])
+            searcher.rng.setstate(st["searcher"]["rng"])
+        if ds is not None and st["datastore"] is not None:
+            ds.keys, ds.refreshed_at = st["datastore"]["keys"].to(dev), st["datastore"]["refreshed_at"]
+        losses = [torch.tensor(l) for l in st["losses"]]
+        emit(dict(event="resume", step=start, path=resume, total_steps=a.steps,
+                  saved_total_steps=st["total_steps"]))
+    else:
+        emit(dict(event="start", model=a.model, params=count_params(model), device=str(dev), cfg=asdict(cfg),
+                  architecture=model.architecture() if a.model == "tonn" else None))
+    t0 = time.time() - done_secs
+    for step in range(start, a.steps):
         if searcher is not None:
             rec = searcher.maybe_round(model, opt, step, a.steps, sel_batches, a.seq)
             if rec:
@@ -182,9 +250,14 @@ def main(argv=None):
                        lr=round(opt.param_groups[0]["lr"], 6), secs=round(time.time() - t0, 1), **evaluate())
             losses = []
             emit(rec)
+        if step + 1 < a.steps and ((a.save_every and (step + 1) % a.save_every == 0) or step + 1 == a.stop_at):
+            save(ckpt_path, model, opt, step + 1, cfg, a.model, train_state(losses, time.time() - t0))
+        if step + 1 == a.stop_at and step + 1 < a.steps:
+            emit(dict(event="stop", step=step + 1, ckpt=ckpt_path))
+            return model
     if a.model == "tonn":
         emit(dict(event="end", architecture=model.architecture()))
-    save(os.path.join(a.out, "model.pt"), model, opt, a.steps, cfg, a.model)
+    save(os.path.join(a.out, "model.pt"), model, opt, a.steps, cfg, a.model, train_state(losses, time.time() - t0))
     return model
 
 

@@ -1,0 +1,166 @@
+{
+ "args": {
+  "root": "data/tokpack",
+  "toks": "bpe32k",
+  "mix": "0.5,0.3,0.2",
+  "steps": 3000,
+  "seconds": 1000.0,
+  "batch": 32,
+  "seq": 512,
+  "lr": 0.002,
+  "eval_batches": 16,
+  "models": "tonn_core",
+  "seeds": "0,1",
+  "cfg": "{\"attn_layers\": [1, 3, 5, 7], \"init_weights\": {\"C\": 4, \"G\": 0.25, \"D\": 0.25}}",
+  "size": "{\"d\": 384, \"n_layers\": 8, \"slots\": 12, \"h\": 32}",
+  "tag": "eqt_mid_hybrid",
+  "device": "mps",
+  "out": "results/sweep"
+ },
+ "device": "mps",
+ "rows": [
+  {
+   "model": "tonn_core",
+   "tag": "eqt_mid_hybrid",
+   "cfg": "{\"attn_layers\": [1, 3, 5, 7], \"init_weights\": {\"C\": 4, \"G\": 0.25, \"D\": 0.25}}",
+   "lr": 0.002,
+   "seed": 0,
+   "tokenizer": "bpe32k",
+   "vocab": 32768,
+   "params_M": 26.75,
+   "steps": 2835,
+   "seconds_budget": 1000.0,
+   "tokens_seen": 46448640,
+   "bytes_seen": 182818375,
+   "secs": 1008.3,
+   "bits_per_byte": {
+    "en": 1.4184,
+    "ja_wiki": 1.4924,
+    "ja_web": 1.3763,
+    "code": 1.7194
+   },
+   "architecture": [
+    {
+     "RP": 1,
+     "MI": 3,
+     "EP": 2,
+     "MIM": 1,
+     "OS": 2,
+     "SM": 2,
+     "G": 1
+    },
+    {
+     "RP": 2,
+     "GI": 2,
+     "C": 3,
+     "M": 2,
+     "I": 1,
+     "OS": 1,
+     "EP": 1
+    },
+    {
+     "MIM": 1,
+     "M": 1,
+     "C": 4,
+     "G": 1,
+     "SM": 3,
+     "RP": 1,
+     "I": 1
+    },
+    {
+     "C": 3,
+     "RP": 2,
+     "MIM": 1,
+     "EP": 2,
+     "I": 3,
+     "OS": 1
+    }
+   ],
+   "train_loss_every_250": [
+    7.1688,
+    5.6436,
+    5.18,
+    4.8677,
+    4.6076,
+    4.4828,
+    4.3638,
+    4.2859,
+    4.2395,
+    4.1275,
+    3.98
+   ]
+  },
+  {
+   "model": "tonn_core",
+   "tag": "eqt_mid_hybrid",
+   "cfg": "{\"attn_layers\": [1, 3, 5, 7], \"init_weights\": {\"C\": 4, \"G\": 0.25, \"D\": 0.25}}",
+   "lr": 0.002,
+   "seed": 1,
+   "tokenizer": "bpe32k",
+   "vocab": 32768,
+   "params_M": 26.75,
+   "steps": 2854,
+   "seconds_budget": 1000.0,
+   "tokens_seen": 46759936,
+   "bytes_seen": 184043613,
+   "secs": 1018.6,
+   "bits_per_byte": {
+    "en": 1.4153,
+    "ja_wiki": 1.4856,
+    "ja_web": 1.3728,
+    "code": 1.7008
+   },
+   "architecture": [
+    {
+     "GI": 2,
+     "C": 5,
+     "MI": 1,
+     "SM": 1,
+     "I": 1,
+     "OS": 2
+    },
+    {
+     "C": 4,
+     "OS": 1,
+     "M": 1,
+     "GI": 1,
+     "MI": 2,
+     "RP": 2,
+     "I": 1
+    },
+    {
+     "MIM": 2,
+     "G": 1,
+     "C": 2,
+     "OS": 2,
+     "EP": 3,
+     "SM": 1,
+     "RP": 1
+    },
+    {
+     "D": 2,
+     "EP": 2,
+     "C": 2,
+     "SM": 1,
+     "I": 2,
+     "MI": 1,
+     "MIM": 1,
+     "GI": 1
+    }
+   ],
+   "train_loss_every_250": [
+    7.1541,
+    5.6508,
+    5.1735,
+    4.7866,
+    4.5586,
+    4.409,
+    4.3075,
+    4.2434,
+    4.1656,
+    4.1201,
+    3.9615
+   ]
+  }
+ ]
+}

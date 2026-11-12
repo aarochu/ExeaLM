@@ -127,7 +127,7 @@ def score(model, batches, ds, dev):
 
 def run(arm, a, dev, train_arts, evals, lib_train, lib_eval, V):
     torch.manual_seed(a.seed)
-    cfg = get_config("small-tonn", vocab_size=V, chunk=a.chunk, rag_chunk_len=a.chunk, seed=a.seed, rag_key_dim=a.key_dim,
+    cfg = get_config("small-tonn", vocab_size=V, chunk=a.chunk, rag_chunk_len=a.chunk, seed=a.seed, rag_key_dim=a.key_dim, rag_lexical=a.lexical,
                      attn_layers=tuple(i for i in range(6) if i % 3), **HYBRID)
     model = ExeaLM(cfg).to(dev)
     opt = make_optimizer(model, a.lr, 0.1)
@@ -182,6 +182,7 @@ def main():
     ap.add_argument("--tag", default="")
     ap.add_argument("--oracle", type=int, default=0, help="1: the search always looks inside the right article")
     ap.add_argument("--key_dim", type=int, default=0, help="size of retrieval keys (0: one circuit's width)")
+    ap.add_argument("--lexical", type=int, default=0, help="size of the lexical (rare-word) part of retrieval keys")
     ap.add_argument("--device", default="auto")
     ap.add_argument("--out", default="results/rag_wiki_split")
     a = ap.parse_args()

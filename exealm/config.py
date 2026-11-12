@@ -42,6 +42,7 @@ class ModelConfig:
     enc_dim: int = 256               # width of the model's own chunk encoder (its retrieval embedding model)
     rag_query: str = "last"          # RG query from the previous chunk's "last" position or its "mean"
     rag_key_dim: int = 0             # size of retrieval keys (0: one circuit's width, h)
+    rag_lexical: int = 0             # extra lexical part of retrieval keys: rare-word codes of this size (0: off)
     swarm_size: int = 4              # agents that share one board (a swarm); a training batch holds many swarms
     board_read_self: bool = True     # may an agent read its own earlier posts?
 

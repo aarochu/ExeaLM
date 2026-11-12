@@ -52,6 +52,9 @@ class Datastore:
         """Re-encode every chunk with the model's current encoder."""
         was = encoder.training
         encoder.eval()
+        if getattr(encoder, "lexical", 0) and not getattr(encoder, "idf_ready", False):
+            encoder.set_idf(self.tokens)                             # word rarity, from the first datastore it sees
+            encoder.idf_ready = True
         keys = [encoder(self.tokens[i:i + batch], emb)[1].float() for i in range(0, len(self), batch)]
         encoder.train(was)
         self.keys = torch.cat(keys)

@@ -121,3 +121,20 @@ def test_larger_retrieval_keys_work_and_stay_causal():
     with torch.no_grad():
         a, b = m(x, mem)[0], m(x2, mem)[0]
     assert torch.allclose(a[:, :21], b[:, :21], atol=1e-5)
+
+
+def test_lexical_keys_match_chunks_that_share_rare_words():
+    cfg = get_config("tiny", rag_lexical=16)
+    m = ExeaLM(cfg)
+    common = torch.full((8,), 5)
+    a = common.clone(); a[2], a[5] = 200, 201                 # two chunks sharing two rare tokens
+    b = common.clone(); b[1], b[6] = 200, 201
+    c = common.clone(); c[3], c[4] = 150, 151                 # a chunk with different rare tokens
+    store = torch.stack([a, b, c] + [torch.full((8,), 5)] * 20)
+    m.encoder.set_idf(store)
+    assert m.encoder.idf[200] > m.encoder.idf[5]
+    lex = lambda t: torch.nn.functional.normalize((m.encoder.lex[t] * m.encoder.idf[t].unsqueeze(-1)).sum(0), dim=-1)
+    assert float(lex(a) @ lex(b)) > float(lex(a) @ lex(c))
+    ds = Datastore(store, torch.arange(len(store)))
+    ds.refresh(m.encoder, m.emb)
+    assert ds.keys.shape[1] == cfg.h + 16

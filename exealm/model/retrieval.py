@@ -44,6 +44,11 @@ class ChunkEncoder(nn.Module):
         self.mlp = MLP(e, 2 * e)
         self.norm = RMSNorm(e)
         self.key = nn.Linear(e, cfg.rag_key_dim or cfg.h, bias=False)
+        self.lexical = cfg.rag_lexical
+        if self.lexical:                                     # fixed random code per token, weighted by rarity (idf)
+            g = torch.Generator().manual_seed(1234)
+            self.register_buffer("lex", torch.randn(cfg.vocab_size, cfg.rag_lexical, generator=g))
+            self.register_buffer("idf", torch.ones(cfg.vocab_size))
 
     def forward(self, tokens, emb):
         """tokens (N, Lc) -> per-token states (N, Lc, enc_dim) and unit-length keys (N, h)."""
@@ -52,7 +57,25 @@ class ChunkEncoder(nn.Module):
         q, k, v = self.qkv(self.mix_norm(z)).view(N, Lc, 3, self.heads, -1).permute(2, 0, 3, 1, 4)
         z = z + self.mix_out(F.scaled_dot_product_attention(q, k, v).transpose(1, 2).reshape(N, Lc, -1))
         z = self.norm(self.mlp(z))
-        return z, F.normalize(self.key(z.mean(1)), dim=-1)
+        key = F.normalize(self.key(z.mean(1)), dim=-1)
+        if self.lexical:                                     # a bag of rare-word codes: same words, similar key
+            lex = F.normalize((self.lex[tokens] * self.idf[tokens].unsqueeze(-1)).sum(1), dim=-1)
+            key = torch.cat([key, lex.to(key.dtype)], -1) / math.sqrt(2)
+        return z, key
+
+    @torch.no_grad()
+    def set_idf(self, tokens):
+        """Word rarity from a datastore's chunks: idf = log(N / (1 + number of chunks containing the token))."""
+        if not self.lexical:
+            return
+        N, V = tokens.shape[0], self.idf.shape[0]
+        df = torch.zeros(V, dtype=torch.long)
+        for i in range(0, N, 65536):
+            t = tokens[i:i + 65536].cpu().long()
+            rows = torch.arange(t.shape[0]).view(-1, 1).expand_as(t)
+            pairs = torch.unique(rows * V + t)                       # each token counted once per chunk
+            df += torch.bincount(pairs % V, minlength=V)
+        self.idf.copy_(torch.log(N / (1 + df.float())).clamp(min=0).to(self.idf.device))
 
 
 class RetrievalCircuit(nn.Module):
@@ -73,7 +96,7 @@ class RetrievalCircuit(nn.Module):
         super().__init__()
         self.chunk, self.topk, self.h, self.query = cfg.chunk, cfg.rag_topk, cfg.h, cfg.rag_query
         self.alpha = nn.Parameter(torch.zeros(()))                         # weight of the slot's stream in the query
-        kd = cfg.rag_key_dim or cfg.h
+        kd = (cfg.rag_key_dim or cfg.h) + cfg.rag_lexical
         self.own = nn.Linear(cfg.h, kd, bias=False) if kd != cfg.h else None   # the slot's stream into key space
         self.log_tau = nn.Parameter(torch.zeros(()))                       # sharpness of "which result to trust" (starts at 1)
 

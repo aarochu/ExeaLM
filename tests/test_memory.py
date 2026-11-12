@@ -162,8 +162,14 @@ def test_swarm_text_scores_only_the_targets_that_count():
     """experiments/swarm_text.py averages over scored targets, so the hidden seam targets don't count as zero loss."""
     import math
     import numpy as np
+    import importlib.util
+    import pathlib
     from exealm.data.loader import SyntheticShards
-    from experiments.swarm_text import score
+    path = pathlib.Path(__file__).parents[1] / "experiments" / "swarm_text.py"
+    spec = importlib.util.spec_from_file_location("swarm_text", path)
+    swarm_text = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(swarm_text)
+    score = swarm_text.score
     torch.manual_seed(0)
     cfg = get_config("tiny", swarm_size=2)
     m = ExeaLM(cfg)

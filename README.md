@@ -59,6 +59,8 @@ byte, lower is better):
 | *27M parameters:* **ExeaLM hybrid (2 seeds)** | **1.412** | **1.483** | **1.371** | **1.702** |
 | *48M, same training time:* Llama (2 seeds) | 1.369 | 1.439 | 1.333 | 1.667 |
 | *48M, same training time:* **ExeaLM hybrid, 2:1 layout (2 seeds)** | **1.366** | **1.436** | **1.327** | **1.653** |
+| *0.1B (90M), same training time:* Llama (1 seed) | 1.392 | 1.468 | 1.352 | 1.713 |
+| *0.1B (90M), same training time:* **ExeaLM hybrid (1 seed)** | **1.386** | **1.462** | **1.347** | **1.702** |
 
 That's small scale and short training. At 6,000 steps the hybrid is still ahead on every kind of text, but by less
 (0.006). After the speed work the hybrid costs 1.13 times a Llama per token at 0.1B. Given the same training time on

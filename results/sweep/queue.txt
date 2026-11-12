@@ -1,2 +1,0 @@
-eqt_100m_llama|--root data/tokpack --toks bpe32k --device mps --steps 3000 --seeds 0 --seconds 3000 --lr 1e-3 --models llama --size '{"d": 640, "n_layers": 14, "slots": 20, "h": 32}'
-eqt_100m_hybrid_lr1e3|--root data/tokpack --toks bpe32k --device mps --steps 3000 --seeds 0 --seconds 3000 --lr 1e-3 --models tonn_core --size '{"d": 640, "n_layers": 14, "slots": 20, "h": 32}' --cfg '{"attn_layers": [1, 2, 4, 5, 7, 8, 10, 11, 13], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}}'

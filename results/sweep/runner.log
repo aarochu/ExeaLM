@@ -91,3 +91,7 @@
 2026-11-11 16:47:50 START hconv_25
 2026-11-11 17:07:32 END hconv_25 {"model": "tonn_core", "tag": "hconv_25", "cfg": "{\"attn_layers\": [2, 5], \"init_weights\": {\"C\": 4, \"G\": 0.25, \"D\": 0.25}}", "lr": 0.002, "seed": 1, "tokenizer": "bpe32k", "vocab": 32768, "pa
 2026-11-11 17:07:32 START eqt_100m_hybrid
+2026-11-11 17:58:04 END eqt_100m_hybrid {"model": "tonn_core", "tag": "eqt_100m_hybrid", "cfg": "{\"attn_layers\": [1, 2, 4, 5, 7, 8, 10, 11, 13], \"init_weights\": {\"C\": 4, \"G\": 0.25, \"D\": 0.25}}", "lr": 0.0015, "seed": 0, "tokenizer
+2026-11-11 17:58:04 START eqt_100m_llama
+2026-11-11 18:48:17 END eqt_100m_llama {"model": "llama", "tag": "eqt_100m_llama", "cfg": "{}", "lr": 0.001, "seed": 0, "tokenizer": "bpe32k", "vocab": 32768, "params_M": 89.73, "steps": 3491, "seconds_budget": 3000.0, "tokens_seen": 57196
+2026-11-11 18:48:17 START eqt_100m_hybrid_lr1e3

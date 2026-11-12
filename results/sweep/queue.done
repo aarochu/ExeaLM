@@ -44,3 +44,5 @@ ragwikisplit_lex|experiments/rag_wiki_split.py --wiki data/tokpack/bpe32k/store_
 hconv_024|--root data/tokpack --toks bpe32k --device mps --steps 3000 --seeds 0,1 --models tonn_core --cfg '{"attn_layers": [0, 2, 4], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}}'
 ragwikisplit_lex_s1|experiments/rag_wiki_split.py --wiki data/tokpack/bpe32k/store_wiki --steps 3000 --key_dim 128 --lexical 128 --neighbour 0.1 --arms rag,none --tag lex --seed 1 --device mps --out results/rag_wiki_split
 hconv_25|--root data/tokpack --toks bpe32k --device mps --steps 3000 --seeds 0,1 --models tonn_core --cfg '{"attn_layers": [2, 5], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}}'
+eqt_100m_hybrid|--root data/tokpack --toks bpe32k --device mps --steps 3000 --seeds 0 --seconds 3000 --lr 1.5e-3 --models tonn_core --size '{"d": 640, "n_layers": 14, "slots": 20, "h": 32}' --cfg '{"attn_layers": [1, 2, 4, 5, 7, 8, 10, 11, 13], "init_weights": {"C": 4, "G": 0.25, "D": 0.25}}'
+eqt_100m_llama|--root data/tokpack --toks bpe32k --device mps --steps 3000 --seeds 0 --seconds 3000 --lr 1e-3 --models llama --size '{"d": 640, "n_layers": 14, "slots": 20, "h": 32}'

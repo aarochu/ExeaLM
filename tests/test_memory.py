@@ -95,12 +95,30 @@ def test_swarm_batches_split_and_mix():
     import numpy as np
     from exealm.data.loader import SyntheticShards
     data = SyntheticShards(n_tokens=20_000)
-    x, y, d = data.batch(8, 16, np.random.default_rng(0), swarm_size=4, policy="split")
+    x, y, d = data.batch(8, 16, np.random.default_rng(0), swarm_size=4, policy="split", mask_seams=False)
     for s in range(2):                                    # each swarm reads one stretch of text, in order
         rows = x[4 * s:4 * s + 4]
         assert torch.equal(rows[1:, 0], y[4 * s:4 * s + 3, -1])
+    xm, ym, _ = data.batch(8, 16, np.random.default_rng(0), swarm_size=4, policy="split")
+    assert torch.equal(xm, x)                             # same windows; only the seam targets are hidden
+    seam = torch.zeros(8, 16, dtype=torch.bool)
+    seam[[0, 1, 2, 4, 5, 6], -1] = True
+    assert (ym[seam] == -100).all() and torch.equal(ym[~seam], y[~seam])
     x, y, d = data.batch(8, 16, np.random.default_rng(0), swarm_size=4, policy="mixed")
     assert x.shape == (8, 16) and d.shape == (8, 16)
+    _, y1, _ = data.batch(8, 16, np.random.default_rng(0), swarm_size=1, policy="split")
+    assert (y1 >= 0).all()                                # a lone agent has no seam
+
+
+def test_the_split_seam_target_really_leaks_through_the_board():
+    """Why batch() masks it: agent 0's last prediction changes when agent 1's first token does."""
+    cfg, m, _, _ = setup(swarm_size=2)
+    x = torch.randint(0, cfg.vocab_size, (2, 40))
+    x2 = x.clone()
+    x2[1, 0] = (x2[1, 0] + 1) % cfg.vocab_size
+    with torch.no_grad():
+        a, b = m(x, MemoryContext(swarm_size=2))[0], m(x2, MemoryContext(swarm_size=2))[0]
+    assert not torch.allclose(a[0, -1], b[0, -1])
 
 
 def test_datastore_returns_k_results_even_when_the_own_document_dominates():
@@ -138,3 +156,28 @@ def test_lexical_keys_match_chunks_that_share_rare_words():
     ds = Datastore(store, torch.arange(len(store)))
     ds.refresh(m.encoder, m.emb)
     assert ds.keys.shape[1] == cfg.h + 16
+
+
+def test_swarm_text_scores_only_the_targets_that_count():
+    """experiments/swarm_text.py averages over scored targets, so the hidden seam targets don't count as zero loss."""
+    import math
+    import numpy as np
+    import importlib.util
+    import pathlib
+    from exealm.data.loader import SyntheticShards
+    path = pathlib.Path(__file__).parents[1] / "experiments" / "swarm_text.py"
+    spec = importlib.util.spec_from_file_location("swarm_text", path)
+    swarm_text = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(swarm_text)
+    score = swarm_text.score
+    torch.manual_seed(0)
+    cfg = get_config("tiny", swarm_size=2)
+    m = ExeaLM(cfg)
+    x, y, _ = SyntheticShards(n_tokens=20_000).batch(4, 24, np.random.default_rng(0), swarm_size=2, policy="split")
+    assert (y[[0, 2], -1] == -100).all()
+    got = score(m, [(x, y)], 2, 2, torch.device("cpu"))["per_agent"]
+    with torch.no_grad():
+        nll = torch.nn.functional.cross_entropy(m.eval()(x, MemoryContext(swarm_size=2))[0].transpose(1, 2), y,
+                                                reduction="none", ignore_index=-100)
+    rows = nll.sum(1) / (y != -100).sum(1) / math.log(2)
+    assert np.allclose(got, [float(rows[[0, 2]].mean()), float(rows[[1, 3]].mean())], atol=1e-4)

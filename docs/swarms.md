@@ -31,6 +31,8 @@ it found, so a swarm of 4 searches 4 ways at once and shares the results.
 
 Rules that keep it honest:
 - An agent hears only what other agents posted in **earlier** 64-token chunks, never the current one (tested).
+- In a split swarm, agent i's last target is the first token agent i + 1 reads, which agent i can hear through the
+  board. The loader hides that one target (sets it to -100) in every split swarm, for every agent but the last (tested).
 - Retrieval never returns chunks of a document the agent is reading. Agents of a split swarm share one document id,
   so none of them can look the document up.
 - Swarms never hear each other (tested).

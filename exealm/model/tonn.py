@@ -18,6 +18,7 @@ import torch.nn.functional as F
 from ..config import ModelConfig
 from ..memory import MemoryContext
 from . import circuits as Cc
+from .baseline import Attention
 from .board import BoardCircuit
 from .common import MLP, RMSNorm
 from .retrieval import ChunkEncoder, RetrievalCircuit
@@ -41,11 +42,12 @@ def initial_specs(cfg, seed=None):
     rng = random.Random(cfg.seed if seed is None else seed)
     fill = [t for t in cfg.menu if t not in cfg.pinned]
     out = []
-    for _ in range(cfg.n_layers):
+    for _ in range(cfg.n_layers - len(cfg.attn_layers)):
         row = [dict(tmpl=t, lag=0, lam0=0.5) for t, c in cfg.pinned.items() for _ in range(c)]
         if len(row) > cfg.slots:
             raise ValueError("more pinned circuits than slots")
-        row += [rand_spec(rng, cfg, fill) for _ in range(cfg.slots - len(row))]
+        w = {t: cfg.init_weights.get(t, 1.0) for t in fill} if cfg.init_weights else None   # unlisted types: 1
+        row += [rand_spec(rng, cfg, fill, w) for _ in range(cfg.slots - len(row))]
         out.append(row)
     return out
 
@@ -88,7 +90,6 @@ class TONNLayer(nn.Module):
     def set_spec(self, k, spec, reinit=True, out_scale=0.1):
         """Put a circuit in slot k. reinit: fresh input rows and small output columns for this slot only."""
         self.specs[k] = dict(spec)
-        self._groups = None
         with torch.no_grad():
             self.scale[k] = 0.0
             self.lam[k].fill_(math.atanh(max(-0.97, min(0.97, spec["lam0"]))) / 3)
@@ -100,42 +101,60 @@ class TONNLayer(nn.Module):
                 c = slice(k * self.h, (k + 1) * self.h)
                 nn.init.normal_(self.out.weight[:, c], std=out_scale / math.sqrt(self.K * self.h))
 
-    def groups(self, device):
-        if self._groups is None or self._groups[0] != device:
-            g = {}
-            for k, s in enumerate(self.specs):
-                g.setdefault(s["tmpl"], []).append(k)
-            lags = torch.tensor([s["lag"] for s in self.specs])
-            self._groups = (device, {t: (torch.tensor(ks, device=device), lags[ks].to(device)) for t, ks in g.items()})
-        return self._groups[1]
+    def plan(self, device):
+        """Slots sorted by circuit type: the order, each type's range in it, and the lags in that order. Cached per
+        architecture (the key changes whenever a slot gets a new circuit)."""
+        key = (tuple((sp["tmpl"], sp["lag"]) for sp in self.specs), str(device))
+        if getattr(self, "_plan_key", None) != key:
+            order = sorted(range(self.K), key=lambda k: self.specs[k]["tmpl"])
+            ranges, start = {}, 0
+            for t in sorted({sp["tmpl"] for sp in self.specs}):
+                n = sum(1 for sp in self.specs if sp["tmpl"] == t)
+                ranges[t] = (start, start + n)
+                start += n
+            self._plan = dict(order=torch.tensor(order, device=device), slots=order, ranges=ranges,
+                              lags=torch.tensor([self.specs[k]["lag"] for k in order], device=device))
+            self._plan_key = key
+        return self._plan
 
     def forward(self, x, mem=None):
+        """Slots are computed grouped by type. Instead of gathering each group's inputs and putting the outputs back in
+        slot order (two copies of large activations every step), the small weight matrices are permuted into type
+        order once per step."""
         B, T, _ = x.shape
-        u = self.inp(self.norm(x)).view(B, T, self.K, 3, self.h)
-        lam = torch.tanh(self.lam * 3)
-        outs, order = [], []
-        for t, (idx, lags) in self.groups(x.device).items():
-            S = [u[:, :, idx, j] for j in range(3)]
+        K, h = self.K, self.h
+        pl = self.plan(x.device)
+        o = pl["order"]
+        W = self.inp.weight.view(K, 3 * h, -1).index_select(0, o).reshape(K * 3 * h, -1)
+        b = self.inp.bias.view(K, 3 * h).index_select(0, o).reshape(-1)
+        u = F.linear(self.norm(x), W, b).view(B, T, K, 3, h)                 # slots in type order
+        lam = torch.tanh(self.lam * 3).index_select(0, o)
+        beta = self.beta.index_select(0, o)
+        outs = []
+        for t, (a, c) in pl["ranges"].items():
+            S = [u[:, :, a:c, j] for j in range(3)]
+            slots = pl["slots"][a:c]                                          # original slot numbers
             if t == "RG":
-                y = self.rg(S, mem)
+                y = self.rg(S, mem, self, slots)
             elif t == "AG":
-                y = self.ag(S, mem, self.index, idx.tolist())
+                y = self.ag(S, mem, self.index, slots)
             else:
-                y = Cc.run(t, S, lags, lam[idx], self.beta[idx])
+                y = Cc.run(t, S, pl["lags"][a:c], lam[a:c], beta[a:c])
             outs.append(y)
-            order.append(idx)
-        y = torch.cat(outs, 2).index_select(2, torch.argsort(torch.cat(order)))   # back to slot order
-        y = self._unit_scale(y) * self.mask.view(1, 1, -1, 1)
-        return x + self.out(y.reshape(B, T, self.K * self.h))
+        y = torch.cat(outs, 2) if len(outs) > 1 else outs[0]
+        y = self._unit_scale(y, o) * self.mask.index_select(0, o).view(1, 1, -1, 1)
+        Wo = self.out.weight.view(-1, K, h).index_select(1, o).reshape(-1, K * h)
+        return x + F.linear(y.reshape(B, T, K * h), Wo)
 
-    def _unit_scale(self, y):
+    def _unit_scale(self, y, o):
         """Divide each slot by the size its output had on PAST batches (a running average), so a prediction never
-        depends on other rows of the same batch and no slot drowns out the others."""
+        depends on other rows of the same batch and no slot drowns out the others. y is in type order o."""
         with torch.no_grad():
             rms = y.detach().float().pow(2).mean(dim=(0, 1, 3)).sqrt()
-            used = torch.where(self.scale > 0, self.scale, rms)
+            sc = self.scale.index_select(0, o)
+            used = torch.where(sc > 0, sc, rms)
             if self.training:
-                self.scale.copy_(torch.where(self.scale > 0, 0.99 * self.scale + 0.01 * rms, rms))
+                self.scale.index_copy_(0, o, torch.where(sc > 0, 0.99 * sc + 0.01 * rms, rms))
         return y / (used.view(1, 1, -1, 1).to(y.dtype) + 1e-3)
 
 
@@ -147,7 +166,8 @@ class ExeaLM(nn.Module):
         specs = specs or initial_specs(cfg)
         self.emb = nn.Embedding(cfg.vocab_size, cfg.d)
         nn.init.normal_(self.emb.weight, std=0.02)
-        self.layers = nn.ModuleList([TONNLayer(cfg, specs[i], i) for i in range(cfg.n_layers)])
+        self.layers = nn.ModuleList([TONNLayer(cfg, specs[i], i) for i in range(cfg.n_layers - len(cfg.attn_layers))])
+        self.attn = nn.ModuleList([Attention(cfg.d, max(1, cfg.d // 64)) for _ in cfg.attn_layers])
         f = cfg.ffn_width
         self.mlps = nn.ModuleList([MLP(cfg.d, f) for _ in range(cfg.n_layers)]) if f else None
         self.norm = RMSNorm(cfg.d)
@@ -165,10 +185,16 @@ class ExeaLM(nn.Module):
         """idx (B, T) token ids. Returns (logits (B, T, V), loss or None)."""
         if mem is None:
             mem = MemoryContext()
-        mem = replace(mem, encoder=self.encoder, emb=self.emb)
+        mem = replace(mem, encoder=self.encoder, emb=self.emb, tokens=idx, cache={})
         x = self.emb(idx)
-        for i, lay in enumerate(self.layers):
-            x = lay(x, mem)
+        ti = ai = 0
+        for i in range(self.cfg.n_layers):
+            if i in self.cfg.attn_layers:                     # a hybrid model's full attention block
+                x = self.attn[ai](x)
+                ai += 1
+            else:
+                x = self.layers[ti](x, mem)
+                ti += 1
             if self.mlps is not None:
                 x = self.mlps[i](x)
         logits = self.head(self.norm(x))

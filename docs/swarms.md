@@ -31,6 +31,8 @@ it found, so a swarm of 4 searches 4 ways at once and shares the results.
 
 Rules that keep it honest:
 - An agent hears only what other agents posted in **earlier** 64-token chunks, never the current one (tested).
+- In a split swarm, agent i's last target is the first token agent i + 1 reads, which agent i can hear through the
+  board. The loader hides that one target (sets it to -100) in every split swarm, for every agent but the last (tested).
 - Retrieval never returns chunks of a document the agent is reading. Agents of a split swarm share one document id,
   so none of them can look the document up.
 - Swarms never hear each other (tested).
@@ -73,7 +75,12 @@ swarms) and posted to selectively (`quiet_posts` above zero) is the first sign a
 ## What we don't know yet
 
 - Does a split swarm predict its text better than solo agents reading the same text? This is the first experiment, and
-  until it works, swarms are a design, not a result.
+  until it works, swarms are a design, not a result. The harness: train once with swarms and once with
+  `--config solo.json` (`{"swarm_size": 1}`), same data and steps, then
+  `python -m exealm.eval.swarm_vs_solo --ckpt <swarm run>/model.pt --baseline <solo run>/model.pt --data <val>`. It
+  scores the same windows as a swarm, solo, and with the solo-trained model, on split swarms and on random swarms as
+  the control. (`experiments/swarm_text.py` runs a from-scratch version at 5M parameters that trains every arm itself,
+  including a matched control on the same split batches; results/README.md, section 2.)
 - Which swarm types teach the most, and in what mix?
 - Do agents end up specializing, and does accuracy rise with swarm size (2, 4, 8)?
 - Can the messages be decoded into text people can read?

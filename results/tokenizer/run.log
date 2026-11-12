@@ -1,0 +1,13 @@
+
+
+
+{"vocab": 32768, "train_secs": 109.0, "embedding_params_M": 21.0, "bytes_per_token_en": 4.381, "heldout_bytes_en": 5004574, "bytes_per_token_ja_wiki": 4.28, "heldout_bytes_ja_wiki": 5000715, "bytes_per_token_ja_web": 5.362, "heldout_bytes_ja_web": 5004271, "bytes_per_token_code": 2.67, "heldout_bytes_code": 5259318}
+
+
+
+{"vocab": 49152, "train_secs": 113.6, "embedding_params_M": 31.5, "bytes_per_token_en": 4.553, "heldout_bytes_en": 5004574, "bytes_per_token_ja_wiki": 4.544, "heldout_bytes_ja_wiki": 5000715, "bytes_per_token_ja_web": 5.749, "heldout_bytes_ja_web": 5004271, "bytes_per_token_code": 2.768, "heldout_bytes_code": 5259318}
+
+
+
+{"vocab": 65536, "train_secs": 120.3, "embedding_params_M": 41.9, "bytes_per_token_en": 4.655, "heldout_bytes_en": 5004574, "bytes_per_token_ja_wiki": 4.723, "heldout_bytes_ja_wiki": 5000715, "bytes_per_token_ja_web": 6.025, "heldout_bytes_ja_web": 5004271, "bytes_per_token_code": 2.828, "heldout_bytes_code": 5259318}
+DONE-TOKENIZER

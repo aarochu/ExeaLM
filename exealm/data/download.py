@@ -1,7 +1,8 @@
 """Download a sample of the training data to work with locally.
 
-LLM-jp Corpus v4 (no account needed; files are 100-500 MB jsonl.gz each):
+LLM-jp Corpus v4 (no account needed; files are 100 MB to 3 GB of jsonl.gz each):
     python -m exealm.data.download llmjp --subset ja/ja_wiki --max_files 1 --out data/raw
+    python -m exealm.data.download llmjp --subset code/code_stack --max_mb 100 --out data/raw   # first 100 MB of text
     python -m exealm.data.download llmjp --list ja/ja_cc            # just list the files
 
 Any Hugging Face dataset in DATA.md, for example K2 Horizon (needs `pip install -e ".[data]"`; streams, so no full
@@ -33,17 +34,34 @@ def llmjp_files(path):
         page += 1
 
 
-def download_llmjp(subset, max_files, out):
-    files = llmjp_files(subset)[:max_files]
+def download_llmjp(subset, max_files, out, max_mb=None, skip=0):
+    """Whole files, or with max_mb a sample: stream the first file and keep complete documents up to max_mb MB of
+    text (the rest of the file is never downloaded)."""
+    files = llmjp_files(subset)[skip:skip + max_files]
     os.makedirs(out, exist_ok=True)
     for f in files:
         dst = os.path.join(out, "llmjp__" + f.replace("/", "__"))
+        if max_mb:
+            dst = dst.replace(".jsonl.gz", f".first{int(max_mb)}MB.jsonl.gz")
         if os.path.exists(dst):
             print("have", dst)
             continue
         print("get", f)
-        urllib.request.urlretrieve(LLMJP_RAW + f, dst + ".part")
+        if max_mb:
+            n = 0
+            with urllib.request.urlopen(LLMJP_RAW + f, timeout=120) as r, gzip.GzipFile(fileobj=r) as gz, \
+                    gzip.open(dst + ".part", "wt", encoding="utf-8") as fo:
+                for line in gz:
+                    text = json.loads(line)["text"]
+                    fo.write(json.dumps({"text": text, "source": "llm-jp-v4/" + subset}, ensure_ascii=False) + "\n")
+                    n += len(text.encode("utf-8"))
+                    if n >= max_mb * 1e6:
+                        break
+        else:
+            urllib.request.urlretrieve(LLMJP_RAW + f, dst + ".part")
         os.replace(dst + ".part", dst)
+        if max_mb:
+            return
 
 
 def extract_text(rec):
@@ -87,6 +105,8 @@ def main():
     ap.add_argument("--subset", default="ja/ja_wiki", help=f"LLM-jp path, one of: {', '.join(LLMJP)}")
     ap.add_argument("--list", default=None, help="list the files of an LLM-jp path and exit")
     ap.add_argument("--max_files", type=int, default=1)
+    ap.add_argument("--max_mb", type=float, default=None, help="LLM-jp: stream a sample of this many MB of text")
+    ap.add_argument("--skip_files", type=int, default=0, help="LLM-jp: start at this file (e.g. 1 for a held-out file)")
     ap.add_argument("--repo", default="IFM/TxT360-v2")
     ap.add_argument("--config", default="web-high-medium")
     ap.add_argument("--max_rows", type=int, default=20000)
@@ -95,7 +115,7 @@ def main():
     if a.list:
         print("\n".join(llmjp_files(a.list)))
     elif a.source == "llmjp":
-        download_llmjp(a.subset, a.max_files, a.out)
+        download_llmjp(a.subset, a.max_files, a.out, a.max_mb, a.skip_files)
     else:
         download_hf(a.repo, a.config, a.max_rows, a.out)
 

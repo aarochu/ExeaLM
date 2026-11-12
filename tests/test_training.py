@@ -34,3 +34,29 @@ def test_dpo_prefers_the_chosen_answer():
     lc = torch.zeros(3, requires_grad=True)
     dpo_loss(lc, torch.zeros(3), torch.zeros(3), torch.zeros(3)).backward()
     assert (lc.grad < 0).all()
+
+
+def test_resumed_run_matches_an_uninterrupted_one(tmp_path):
+    common = ["--preset", "tiny", "--data", "synthetic", "--steps", "40", "--eval_every", "20", "--search_every", "4",
+              "--search_until", "0.9", "--datastore_chunks", "300", "--refresh_every", "15", "--device", "cpu"]
+    a, b = tmp_path / "a", tmp_path / "b"
+    main(common + ["--out", str(a)])                                          # straight through
+    main(common + ["--out", str(b), "--stop_at", "6"])                       # between two rounds that replace slots
+    main(common + ["--out", str(b), "--resume", "auto"])
+    full, _ = load_model(str(a / "model.pt"))
+    resumed, ck = load_model(str(b / "model.pt"))
+    assert ck["step"] == 40
+    events = [json.loads(l) for l in (b / "log.jsonl").read_text().splitlines()]
+    assert [e["step"] for e in events if e["event"] == "resume"] == [6]
+    after = [e for e in events if e["event"] == "search" and e["step"] > 6]
+    assert any(e["replaced"] > 0 for e in after)                             # so the search's own state mattered
+    assert full.specs == resumed.specs                                       # the search made the same choices
+    for (k, v), w in zip(full.state_dict().items(), resumed.state_dict().values()):
+        assert torch.equal(v, w), k
+
+
+def test_resume_auto_starts_fresh_without_a_checkpoint(tmp_path):
+    main(["--preset", "tiny", "--data", "synthetic", "--steps", "5", "--eval_every", "5", "--device", "cpu",
+          "--out", str(tmp_path), "--resume", "auto"])
+    events = [json.loads(l)["event"] for l in (tmp_path / "log.jsonl").read_text().splitlines()]
+    assert events[0] == "start" and "resume" not in events

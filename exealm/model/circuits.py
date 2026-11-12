@@ -83,7 +83,9 @@ def run(t, S, lags, lam, beta):
     if t == "EP":                                     # positive decay keeps the denominator positive
         e = torch.exp(A.clamp(-8, 8))
         lp = lam.abs().reshape(-1)
-        return back(decay_scan(flat(e * Bs), lp)) / (back(decay_scan(flat(e), lp)) + 1e-3)
+        both = decay_scan(torch.cat([flat(e * Bs), flat(e)], -1), torch.cat([lp, lp]))   # one FFT for both sums
+        num, den = both.split(g * h, -1)
+        return back(num) / (back(den) + 1e-3)
     if t == "G":
         return F.silu(A) * Bs
     if t == "C":

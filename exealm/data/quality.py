@@ -1,10 +1,9 @@
 """Picking the best 100B tokens (DATA.md): filters, deduplication and quality scores.
 
 What is here works but is simple: rule-based filters (in the spirit of the Gopher and FineWeb rules) with separate
-rules for Japanese, and exact deduplication by hash. What should replace or extend it:
+rules for Japanese, and exact deduplication by hash. Near-duplicates across sources are removed in the next step,
+exealm/data/dedup.py (MinHash LSH). What should replace or extend this file:
 
-  TODO(data): near-duplicate removal with MinHash LSH (datatrove or datasketch). LLM-jp's Japanese subsets are already
-              deduplicated; English and K2 Horizon data need checking across sources.
   TODO(data): a learned quality score, like FineWeb-Edu's educational-value classifier, trained for Japanese too.
   TODO(data): decontamination: drop documents that contain our evaluation benchmarks' questions.
   TODO(data): measure each filter by training two small models (with and without it) on the same token budget.

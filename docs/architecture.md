@@ -10,6 +10,23 @@ The `100m` preset (`exealm/config.py`): width 640, 14 layers, 20 circuits per la
 1,704, a 49,152-token vocabulary with tied input and output embeddings. That comes to 101M parameters, 31M of them in
 the embedding table. The Llama-style baseline with the same width, depth and MLP has 100M.
 
+## The hybrid (the default)
+
+In the `100m` and `small` presets every third layer is a TONN layer and the others are full attention layers
+(`attn_layers`). TONN's starting circuits use short convolutions 4 times as often and gated units and delays a quarter
+as often (`init_weights`). Pure TONN is still available as `100m-tonn` and `small-tonn`.
+
+The 2:1 layout came from equal-compute tests:
+- Half attention, half TONN won at equal steps at every size but lost at equal training time at 48M, because TONN
+  layers are slower per step.
+- Two attention layers per TONN layer kept the quality and won at equal training time at 48M too.
+
+Why: on real tokens at 13M parameters pure TONN trailed a same-size Llama, by 0.18 bits per byte on code. Code needs
+exact copying of names, which full attention does well. The hybrid keeps attention for that and lets TONN's
+convolutions, state spaces and memories do the rest. It beat Llama on every kind of text with both seeds
+(results/README.md, sections 7 and 8). With a random starting mix the hybrid depended on the seed: one seed drew
+mostly convolutions and won, the other drew mostly gated units and lost on code. Favouring convolutions fixed that.
+
 ## A TONN layer
 
 1. Normalize the residual stream and project it, in **one** matrix, into 20 slots × 3 streams (A, B, C) × 32 channels.

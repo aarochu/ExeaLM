@@ -1,9 +1,11 @@
 """Speed benchmark: training and generation tokens per second, TONN against the Llama baseline of the same size.
 
-The README's caveat is that TONN trains about 2.7 times slower per step than a transformer, because its kernels are not
-optimized yet. This script measures that number on your own hardware, so a faster kernel (exealm/model/scan.py) or a
-recurrent generation cache can show what it buys. Both models get the same preset, batch, sequence length and
-optimizer; TONN can also be timed with retrieval switched on (--datastore_chunks) and its swarms (--swarm).
+"tonn" is the preset's ExeaLM: for "small" and "100m" that is the default hybrid (attention layers with TONN layers
+among them), for "small-tonn" and "100m-tonn" pure TONN. experiments/speed.py measures training speed only, at full
+size (results/README.md, section 5); this script adds generation and runs on any preset, so a faster kernel
+(exealm/model/scan.py) or a recurrent generation cache can show what it buys on your own hardware. Both models get the
+same preset, batch, sequence length and optimizer; TONN can also be timed with retrieval switched on
+(--datastore_chunks) and its swarms (--swarm).
 
     python -m exealm.eval.speed --preset small --batch 8 --seq 512            # training and generation, both models
     python -m exealm.eval.speed --preset tiny --device cpu --steps 5          # a quick check

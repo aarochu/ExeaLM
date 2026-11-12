@@ -69,7 +69,9 @@ Every eval record in `log.jsonl` carries a `board` entry, measured on the valida
 - `read_nothing_per_layer` and `post_strength_per_layer`.
 
 Every search record carries `board_worth`: for each layer, how many bits per token the loss rises when that layer's AG
-slots are switched off. A board that is worth something, read selectively (`read_nothing` well above zero on random
+slots are switched off. The per-layer lists have one entry per TONN layer (in a hybrid, attention layers have no
+board). Eval records also carry `board_gain_bits_per_token`: the loss with the board cut (every agent alone) minus the
+loss with it shared. A board that is worth something, read selectively (`read_nothing` well above zero on random
 swarms) and posted to selectively (`quiet_posts` above zero) is the first sign agents are learning to talk.
 
 ## What we don't know yet

@@ -3,10 +3,12 @@
     decay_scan:  s_t = lam * s_{t-1} + u_t     (one fixed decay per channel, may be negative)
     gated_scan:  s_t = g_t * s_{t-1} + u_t     (a decay that changes with the input, 0 < g_t < 1)
 
-Both are exact and causal. They are written for clarity, not speed: a fused GPU kernel (Triton or CUDA) for these two
-is one of the most useful contributions anyone can make (docs/ideas.md).
+Both are exact and causal, in plain PyTorch: an FFT convolution for the first, a parallel prefix scan for the second.
+A fused GPU kernel (Triton or CUDA) for these two is still one of the most useful contributions anyone can make
+(docs/ideas.md).
 """
 import torch
+import torch.nn.functional as F
 
 
 def decay_scan(u, lam):
@@ -22,21 +24,19 @@ def decay_scan(u, lam):
     return y.to(dtype)
 
 
-def gated_scan(u, g, chunk=64):
-    """u, g (B, T, C), 0 < g < 1. Exact, in chunks: inside a chunk the weight of u_j at time t is exp(L_t - L_j) with L
-    the running sum of log g from the chunk start; the state carried in from the previous chunk is scaled by exp(L_t).
-    Memory is B * chunk * chunk * C per chunk, not B * T * T * C."""
-    B, T, C = u.shape
+def gated_scan(u, g, chunk=None):
+    """u, g (B, T, C), 0 < g < 1. Exact, as a parallel prefix scan (Hillis-Steele): log2(T) rounds of elementwise
+    work, each combining every position with the one 2^r steps back:
+        S_t <- S_t + G_t * S_{t-2^r},   G_t <- G_t * G_{t-2^r}
+    The decays only ever multiply, so it stays stable. It replaced a chunked version that built a chunk x chunk matrix
+    per channel and made GI and SM circuits 6-7x slower than an attention block (experiments/profile_circuits.py).
+    `chunk` is accepted for compatibility and ignored."""
+    T = u.shape[1]
     dtype = u.dtype
-    u, lg = u.float(), torch.log(g.float().clamp_min(1e-6))
-    s = u.new_zeros(B, C)
-    outs = []
-    for c0 in range(0, T, chunk):
-        uc, L = u[:, c0:c0 + chunk], torch.cumsum(lg[:, c0:c0 + chunk], 1)
-        n = uc.shape[1]
-        keep = torch.ones(n, n, device=u.device, dtype=torch.bool).tril().view(1, n, n, 1)
-        W = torch.exp((L.unsqueeze(2) - L.unsqueeze(1)).clamp(max=0)) * keep            # (B, t, j, C)
-        y = torch.einsum("btjc,bjc->btc", W, uc) + torch.exp(L) * s.unsqueeze(1)
-        s = y[:, -1]
-        outs.append(y)
-    return torch.cat(outs, 1).to(dtype)
+    s, a = u.float(), g.float()
+    k = 1
+    while k < T:
+        s = s + a * F.pad(s, (0, 0, k, 0))[:, :T]
+        a = a * F.pad(a, (0, 0, k, 0), value=1.0)[:, :T]
+        k *= 2
+    return s.to(dtype)

@@ -16,17 +16,17 @@
 | Swarms | 4 agents per board, many swarms per batch, half split / half random | see [swarms.md](swarms.md) |
 | Final decay phase | DATA.md's annealing mix (the last 5%) | as in SmolLM2 and OLMo 2 |
 
-**Compute.** 6 × 101M parameters × 100B tokens ≈ 6 × 10¹⁹ FLOPs. At about 300 TFLOPs sustained per MI300X (DATA.md's
-assumption) that is about 56 GPU-hours. TONN is about 2.7 times slower per step today, and retrieval adds roughly a
-quarter, so plan for about 200 GPU-hours, about a day on 8 GPUs, until the kernels get faster. The difference is why
-fast kernels matter.
+**Compute.** 6 × 101M parameters × 100B tokens ≈ 6 × 10¹⁹ FLOPs. At about 300 TFLOPs sustained per MI300X that is
+about 56 GPU-hours. The default ExeaLM (two attention layers per TONN layer) trains at the same speed as a same-size
+transformer on our hardware, and retrieval adds about half again, so plan for about 85 GPU-hours with retrieval on
+(results/README.md, section 5).
 
 What exists: `exealm/train/pretrain.py` runs this loop on one device, with the search, retrieval, swarms, WSD,
-evaluation and checkpoints.
+evaluation and checkpoints. A run can stop and pick up again exactly where it left off (`--save_every`, `--stop_at`,
+`--resume auto`), which is what lets a long run span several Colab sessions or preemptible GPU jobs.
 
 What's missing:
 - multi-GPU (DDP, then FSDP)
-- resuming from a checkpoint
 - a streaming data loader for the full mix with per-source weights
 - context extension
 - `torch.compile`

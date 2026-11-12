@@ -1,0 +1,5 @@
+{"name": "llama", "params_M": 100.2, "batch": 8, "seq": 2048, "secs_per_step": 1.362, "tokens_per_sec": 12026}
+{"name": "tonn, memory idle", "params_M": 101.1, "batch": 8, "seq": 2048, "secs_per_step": 1.541, "tokens_per_sec": 10630}
+{"name": "tonn, retrieval on", "params_M": 101.1, "batch": 8, "seq": 2048, "secs_per_step": 2.257, "tokens_per_sec": 7259}
+{"name": "tonn, retrieval on + swarms of 4", "params_M": 101.1, "batch": 8, "seq": 2048, "secs_per_step": 2.249, "tokens_per_sec": 7285}
+{"datastore_refresh_secs": 1.59, "chunks": 100000}

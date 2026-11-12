@@ -1,0 +1,1 @@
+{"model": "tonn", "tag": "hyb135_mem", "cfg": "{\"attn_layers\": [1, 3, 5]}", "lr": 0.002, "seed": 0, "tokenizer": "bpe32k", "vocab": 32768, "params_M": 13.31, "steps": 3000, "tokens_seen": 49152000, "bytes_seen": 193458598, "secs": 625.4, "bits_per_byte": {"en": 1.4494, "ja_wiki": 1.5185, "ja_web": 1.4016, "code": 1.7336}}

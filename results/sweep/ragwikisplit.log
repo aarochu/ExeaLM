@@ -1,0 +1,8 @@
+{"train_articles": 14209, "eval_articles": 1578, "library_train": 483270, "library_eval": 53467}
+{"arm": "rag", "step": 1000, "secs": 153.0, "attached": 6.2667, "removed": 6.2599, "retrieval_gain": -0.0068}
+{"arm": "rag", "step": 2000, "secs": 307.2, "attached": 5.7446, "removed": 5.7419, "retrieval_gain": -0.0027}
+{"arm": "rag", "step": 3000, "secs": 461.4, "attached": 5.2854, "removed": 5.2851, "retrieval_gain": -0.0003}
+{"arm": "none", "step": 1000, "secs": 90.1, "attached": 6.2655, "removed": 6.2606, "retrieval_gain": -0.0049}
+{"arm": "none", "step": 2000, "secs": 181.8, "attached": 5.7466, "removed": 5.7441, "retrieval_gain": -0.0025}
+{"arm": "none", "step": 3000, "secs": 273.4, "attached": 5.2854, "removed": 5.2823, "retrieval_gain": -0.0031}
+WROTE results/rag_wiki_split/rag_wiki_split_seed0.json

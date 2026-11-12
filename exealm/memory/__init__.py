@@ -25,8 +25,10 @@ class MemoryContext:
     board: Optional[AgentBoard] = None
     agent_ids: Optional[torch.Tensor] = None
     write_board: bool = False
-    encoder: Any = None              # set by the model: its ChunkEncoder and token embedding
-    emb: Any = None
+    encoder: Any = None              # set by the model: its ChunkEncoder, token embedding, the tokens being read,
+    emb: Any = None                  # and a per-pass cache (the encoder's keys for the chunks being read)
+    tokens: Any = None
+    cache: Any = None
 
 
 __all__ = ["AgentBoard", "Datastore", "MemoryContext"]

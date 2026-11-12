@@ -17,16 +17,28 @@ more but can never remove the last one.
 A normal RAG system has four parts built by different people: an embedding model, an index, a rule for what to search
 for, and a prompt that pastes the results in. In ExeaLM all four are learned by the model:
 
-1. **Embeddings.** `ChunkEncoder` turns a 64-token chunk into per-token states and one 32-number key. It reads the
-   model's own token embeddings and is shared by every RG slot, so there is one index.
-2. **What to search for.** At the end of each chunk, an RG slot's stream A is its query. Every RG slot learns its own.
+1. **Embeddings.** `ChunkEncoder` turns a 64-token chunk into one 32-number key. Inside the chunk, one attention
+   layer lets the tokens see each other, followed by an MLP. It reads the model's own token embeddings and is shared by
+   every RG slot, so there is one index.
+2. **What to search for.** The query for chunk c is the same encoder applied to chunk c - 1 (the text just read), plus
+   the slot's own stream A scaled by a learned weight that starts at 0. Both sides go through the same encoder, so
+   "find stored text like what I just read" works from the first step, and training sharpens it.
 3. **Which results to trust.** The top-k results (k = 4) are scored against the query, and the softmax of those scores
-   weights them. Gradient flows through the scores to both the query and the encoder.
-4. **What to take.** Every position in the next chunk reads the retrieved tokens with attention (query = stream B),
-   gated by stream C.
+   weights them. The sharpness starts at 1 (nearly even weights) so a bad early search can't drown out the read.
+   Gradient flows through the scores to both the query and the encoder.
+4. **What to take.** Every position in the next chunk reads the retrieved tokens with attention. Retrieved tokens go
+   through the layer's own input projection, exactly as if they were in the context. Their attention keys look one
+   token back, so "find the key, take what follows it" is a single step (an induction step).
+
+How we got here (experiments/rag_lookup.py, results/README.md): the first design read the encoder's states through a
+separate projection, made the query from the last position of the previous chunk, and gated the read by stream C. It
+never learned to retrieve. Three things were each enough to block it:
+- the query and the stored keys lived in unrelated spaces;
+- the gate scrambled the retrieved value (a linear probe recovered it 68% of the time before the gate, 2.5% after);
+- a zero-initialised matrix adding the encoder's states to retrieved tokens swamped their identity within 100 steps.
 
 Rules that keep it honest:
-- **Causal.** The query for chunk c is made at the last position of chunk c - 1.
+- **Causal.** The query for chunk c is made from chunk c - 1 only, and positions in chunk c - 1 never see the result.
 - **No looking up the answer.** The datastore never returns chunks from the document being read (`exclude=`). This
   matters: without it, the model would learn to copy the next tokens from the datastore. Near-duplicate documents
   leak the same way, which is one more reason deduplication matters.
@@ -43,8 +55,11 @@ Open problems:
 - **What goes in the datastore?** All 100B training tokens is more than one index needs. A curated few billion (encyclopedias, textbooks,
   documentation, in Japanese and English) is the starting idea.
 - **Key size.** Keys are 32 numbers (one slot's width). Is that enough to find the right chunk among millions?
-- **Cost.** Re-encoding 4 retrieved chunks for each RG slot is about 4× the batch's own tokens per RG slot, through a
-  small encoder. Caching, sharing retrievals between layers, or fewer RG slots might be enough.
+- **Cost.** With retrieval on, the 0.1B model trains at 0.58 times its speed without it (results/README.md, section 5):
+  every RG slot re-encodes and reads 4 retrieved chunks per chunk of text. Caching, sharing retrievals between layers,
+  or fewer RG slots might be enough.
+- **Context for retrieved tokens.** They are read as plain token embeddings. Giving them context (what they mean in their
+  chunk) must not swamp their identity; a gated or slow-growing path is untested.
 - **At inference,** the datastore can be swapped for a different one (new facts, private documents) without
   retraining. How well that works is an experiment nobody has run yet.
 

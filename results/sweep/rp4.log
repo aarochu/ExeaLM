@@ -1,0 +1,1 @@
+{"model": "tonn_core", "tag": "rp4", "cfg": "{\"init_weights\": {\"RP\": 4}}", "lr": 0.002, "seed": 0, "tokenizer": "bpe32k", "vocab": 32768, "params_M": 13.1, "steps": 3000, "tokens_seen": 49152000, "bytes_seen": 193458598, "secs": 815.0, "bits_per_byte": {"en": 1.4746, "ja_wiki": 1.5552, "ja_web": 1.4242, "code": 1.8695}}

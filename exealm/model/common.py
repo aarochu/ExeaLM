@@ -32,12 +32,14 @@ class MLP(nn.Module):
 
 
 def rotate(x, base=10000.0):
-    """Rotary position embedding (RoPE) on the last dim of x (B, T, g, h): each channel pair is rotated by an angle
-    proportional to its position, so a query-key dot product depends only on how far apart the two positions are."""
+    """Rotary position embedding (RoPE) on the last dim of x (B, T, g, h): channel i is paired with channel i + h/2 and
+    each pair is rotated by an angle proportional to its position, so a query-key dot product depends only on how far
+    apart the two positions are. (Pairing halves rather than neighbours avoids a stack and reshape: same function
+    class, faster.)"""
     B, T, g, h = x.shape
     half = h // 2
     freq = base ** (-torch.arange(half, device=x.device, dtype=torch.float32) / half)
     ang = torch.arange(T, device=x.device, dtype=torch.float32).view(T, 1) * freq.view(1, half)
     cos, sin = ang.cos().view(1, T, 1, half).to(x.dtype), ang.sin().view(1, T, 1, half).to(x.dtype)
-    x1, x2 = x[..., 0::2], x[..., 1::2]
-    return torch.stack([x1 * cos - x2 * sin, x1 * sin + x2 * cos], -1).reshape(B, T, g, h)
+    x1, x2 = x[..., :half], x[..., half:]
+    return torch.cat([x1 * cos - x2 * sin, x1 * sin + x2 * cos], -1)

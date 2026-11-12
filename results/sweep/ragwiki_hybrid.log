@@ -1,0 +1,7 @@
+{"arm": "rag", "step": 1000, "secs": 342.0, "train_loss": 4.6171, "attached": 6.817, "removed": 6.8166, "retrieval_gain": -0.0004}
+{"arm": "rag", "step": 2000, "secs": 688.9, "train_loss": 4.2913, "attached": 6.36, "removed": 6.3529, "retrieval_gain": -0.0071}
+{"arm": "rag", "step": 3000, "secs": 1036.4, "train_loss": 3.9673, "attached": 5.9692, "removed": 5.9675, "retrieval_gain": -0.0017}
+{"arm": "none", "step": 1000, "secs": 187.1, "train_loss": 4.5955, "attached": 6.8287, "removed": 6.8161, "retrieval_gain": -0.0126}
+{"arm": "none", "step": 2000, "secs": 379.1, "train_loss": 4.2959, "attached": 6.3626, "removed": 6.3542, "retrieval_gain": -0.0084}
+{"arm": "none", "step": 3000, "secs": 571.1, "train_loss": 3.9723, "attached": 5.9766, "removed": 5.9697, "retrieval_gain": -0.0069}
+WROTE results/rag_wiki/rag_text_seed0.json

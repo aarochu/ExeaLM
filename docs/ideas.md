@@ -4,6 +4,21 @@ Each idea needs a fair comparison before it goes in (CONTRIBUTING.md): same data
 against the current default. Small runs on the `tiny` preset or a 10M to 20M model are enough to start.
 
 ## Make it faster
+
+Speed decides equal-compute comparisons. At equal steps the hybrid beats Llama; at equal training time it ties or wins
+up to 27M and loses at 48M, where it takes about 1.2 times Llama's time per step (results/README.md, section 8). What
+we measured (`experiments/profile_circuits.py`, Mac GPU, one layer forward and backward, width 256):
+- an attention block takes about 18 ms;
+- most circuit types take 15-30 ms, RP 33, SM 45;
+- GI and SM took 127 and 145 ms before the parallel prefix scan in `scan.py`.
+
+Done so far:
+- the prefix scan for gated recurrences;
+- one FFT for EP's two sums;
+- cheaper RoPE;
+- permuting weights instead of activations in the TONN layer (9% per step).
+
+Next:
 - **Fused scan kernels.** `decay_scan` and `gated_scan` (`exealm/model/scan.py`) carry most TONN circuits. A Triton
   kernel (chunked parallel scan) could close most of the 2.7× gap with the transformer.
 - **Group circuits across types.** All the running-sum circuits (I, MI, MIM, EP) can share one scan call per layer.

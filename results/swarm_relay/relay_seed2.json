@@ -1,0 +1,377 @@
+{
+ "args": {
+  "arms": "swarm,solo",
+  "steps": 3000,
+  "swarms": 32,
+  "facts": 4,
+  "fill": 64,
+  "chunk": 8,
+  "d": 128,
+  "layers": 4,
+  "slots": 8,
+  "h": 16,
+  "lr": 0.002,
+  "eval_every": 250,
+  "eval_batches": 16,
+  "seed": 2,
+  "device": "cpu",
+  "out": "results/swarm_relay"
+ },
+ "device": "cpu",
+ "chance": {
+  "acc": 0.0156,
+  "bits": 6.0
+ },
+ "runs": [
+  {
+   "arm": "swarm",
+   "params": 829484,
+   "final": {
+    "arm": "swarm",
+    "step": 3000,
+    "secs": 1142.8,
+    "shared": {
+     "acc": 0.999,
+     "bits": 0.023
+    },
+    "cut": {
+     "acc": 0.0137,
+     "bits": 16.36
+    }
+   },
+   "curve": [
+    {
+     "arm": "swarm",
+     "step": 250,
+     "secs": 56.0,
+     "shared": {
+      "acc": 0.9883,
+      "bits": 0.301
+     },
+     "cut": {
+      "acc": 0.0146,
+      "bits": 9.19
+     }
+    },
+    {
+     "arm": "swarm",
+     "step": 500,
+     "secs": 131.6,
+     "shared": {
+      "acc": 0.9829,
+      "bits": 0.12
+     },
+     "cut": {
+      "acc": 0.0146,
+      "bits": 14.819
+     }
+    },
+    {
+     "arm": "swarm",
+     "step": 750,
+     "secs": 216.9,
+     "shared": {
+      "acc": 0.9863,
+      "bits": 0.082
+     },
+     "cut": {
+      "acc": 0.0117,
+      "bits": 15.575
+     }
+    },
+    {
+     "arm": "swarm",
+     "step": 1000,
+     "secs": 305.9,
+     "shared": {
+      "acc": 0.9971,
+      "bits": 0.044
+     },
+     "cut": {
+      "acc": 0.0122,
+      "bits": 17.163
+     }
+    },
+    {
+     "arm": "swarm",
+     "step": 1250,
+     "secs": 388.8,
+     "shared": {
+      "acc": 0.9951,
+      "bits": 0.061
+     },
+     "cut": {
+      "acc": 0.0122,
+      "bits": 17.833
+     }
+    },
+    {
+     "arm": "swarm",
+     "step": 1500,
+     "secs": 487.0,
+     "shared": {
+      "acc": 0.9961,
+      "bits": 0.047
+     },
+     "cut": {
+      "acc": 0.0161,
+      "bits": 18.402
+     }
+    },
+    {
+     "arm": "swarm",
+     "step": 1750,
+     "secs": 617.7,
+     "shared": {
+      "acc": 0.9961,
+      "bits": 0.024
+     },
+     "cut": {
+      "acc": 0.0107,
+      "bits": 18.242
+     }
+    },
+    {
+     "arm": "swarm",
+     "step": 2000,
+     "secs": 746.9,
+     "shared": {
+      "acc": 0.9976,
+      "bits": 0.013
+     },
+     "cut": {
+      "acc": 0.0146,
+      "bits": 18.887
+     }
+    },
+    {
+     "arm": "swarm",
+     "step": 2250,
+     "secs": 863.1,
+     "shared": {
+      "acc": 0.9985,
+      "bits": 0.01
+     },
+     "cut": {
+      "acc": 0.0161,
+      "bits": 17.094
+     }
+    },
+    {
+     "arm": "swarm",
+     "step": 2500,
+     "secs": 968.5,
+     "shared": {
+      "acc": 0.9995,
+      "bits": 0.003
+     },
+     "cut": {
+      "acc": 0.0161,
+      "bits": 18.421
+     }
+    },
+    {
+     "arm": "swarm",
+     "step": 2750,
+     "secs": 1055.5,
+     "shared": {
+      "acc": 0.9971,
+      "bits": 0.024
+     },
+     "cut": {
+      "acc": 0.0112,
+      "bits": 16.815
+     }
+    },
+    {
+     "arm": "swarm",
+     "step": 3000,
+     "secs": 1142.8,
+     "shared": {
+      "acc": 0.999,
+      "bits": 0.023
+     },
+     "cut": {
+      "acc": 0.0137,
+      "bits": 16.36
+     }
+    }
+   ]
+  },
+  {
+   "arm": "solo",
+   "params": 829484,
+   "final": {
+    "arm": "solo",
+    "step": 3000,
+    "secs": 1015.9,
+    "shared": {
+     "acc": 0.0171,
+     "bits": 6.003
+    },
+    "cut": {
+     "acc": 0.0171,
+     "bits": 6.003
+    }
+   },
+   "curve": [
+    {
+     "arm": "solo",
+     "step": 250,
+     "secs": 79.5,
+     "shared": {
+      "acc": 0.0151,
+      "bits": 6.049
+     },
+     "cut": {
+      "acc": 0.0151,
+      "bits": 6.049
+     }
+    },
+    {
+     "arm": "solo",
+     "step": 500,
+     "secs": 165.0,
+     "shared": {
+      "acc": 0.0142,
+      "bits": 6.018
+     },
+     "cut": {
+      "acc": 0.0142,
+      "bits": 6.018
+     }
+    },
+    {
+     "arm": "solo",
+     "step": 750,
+     "secs": 247.2,
+     "shared": {
+      "acc": 0.0176,
+      "bits": 6.004
+     },
+     "cut": {
+      "acc": 0.0176,
+      "bits": 6.004
+     }
+    },
+    {
+     "arm": "solo",
+     "step": 1000,
+     "secs": 338.3,
+     "shared": {
+      "acc": 0.0161,
+      "bits": 6.007
+     },
+     "cut": {
+      "acc": 0.0161,
+      "bits": 6.007
+     }
+    },
+    {
+     "arm": "solo",
+     "step": 1250,
+     "secs": 421.8,
+     "shared": {
+      "acc": 0.0112,
+      "bits": 6.007
+     },
+     "cut": {
+      "acc": 0.0112,
+      "bits": 6.007
+     }
+    },
+    {
+     "arm": "solo",
+     "step": 1500,
+     "secs": 505.9,
+     "shared": {
+      "acc": 0.0225,
+      "bits": 6.005
+     },
+     "cut": {
+      "acc": 0.022,
+      "bits": 6.005
+     }
+    },
+    {
+     "arm": "solo",
+     "step": 1750,
+     "secs": 594.1,
+     "shared": {
+      "acc": 0.0146,
+      "bits": 6.004
+     },
+     "cut": {
+      "acc": 0.0146,
+      "bits": 6.004
+     }
+    },
+    {
+     "arm": "solo",
+     "step": 2000,
+     "secs": 680.4,
+     "shared": {
+      "acc": 0.0146,
+      "bits": 6.005
+     },
+     "cut": {
+      "acc": 0.0146,
+      "bits": 6.005
+     }
+    },
+    {
+     "arm": "solo",
+     "step": 2250,
+     "secs": 765.2,
+     "shared": {
+      "acc": 0.0176,
+      "bits": 6.004
+     },
+     "cut": {
+      "acc": 0.0176,
+      "bits": 6.004
+     }
+    },
+    {
+     "arm": "solo",
+     "step": 2500,
+     "secs": 850.4,
+     "shared": {
+      "acc": 0.0181,
+      "bits": 6.001
+     },
+     "cut": {
+      "acc": 0.0181,
+      "bits": 6.001
+     }
+    },
+    {
+     "arm": "solo",
+     "step": 2750,
+     "secs": 936.0,
+     "shared": {
+      "acc": 0.0112,
+      "bits": 6.005
+     },
+     "cut": {
+      "acc": 0.0112,
+      "bits": 6.005
+     }
+    },
+    {
+     "arm": "solo",
+     "step": 3000,
+     "secs": 1015.9,
+     "shared": {
+      "acc": 0.0171,
+      "bits": 6.003
+     },
+     "cut": {
+      "acc": 0.0171,
+      "bits": 6.003
+     }
+    }
+   ]
+  }
+ ]
+}

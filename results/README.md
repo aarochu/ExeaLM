@@ -308,13 +308,21 @@ like names, places and terms, get similar keys from the first step; the learned 
 | **Learned (128) + rare-word (128) keys** | **5.256** | 5.260 | **31.6%** |
 | Oracle search | 5.242 | 5.309 | (perfect) |
 
-- **The first retrieval gain on real text.** The rare-word search finds the right article 32% of the time instead of
-  12%, and the model is 0.026 bits per token better than the no-retrieval model: about 65% of the oracle's gain.
-- Larger learned keys alone did not help.
-- A strong neighbour loss hurt the language model, because the search encoder shares the token embeddings.
-- Most of the gain shows up even with the library removed at test time: training with a search that finds related
-  text seems to make the model better.
-- One seed, so the comparison with the no-retrieval model needs care. Seed 1 of both is running.
+**Seed 1 does not confirm the gain over a no-retrieval model:**
+
+| Seed | Learned + rare-word keys, library attached | Same model, library removed | No-retrieval model |
+|---|---|---|---|
+| 0 | 5.256 | 5.260 | 5.282 |
+| 1 | 5.281 | 5.285 | **5.279** |
+
+- **What holds on both seeds.** The rare-word keys raise the search's hit rate from about 12% to about 30%. The
+  library consistently helps the model it was trained with: 0.004 bits per token at test time.
+- **What does not hold.** Against a separately trained no-retrieval model the net effect is -0.026 on seed 0 and
+  +0.002 on seed 1. Seed 0's large lead was mostly run-to-run variation, not retrieval.
+- **Conclusion at this size.** Retrieval works mechanically and the search is much better, but the net gain on real
+  text is not yet established.
+- The oracle shows that 0.040 bits per token is available with a good enough search. The search still finds the right
+  article only 30% of the time.
 
 ## 7. TONN vs Llama on real tokens (`experiments/tokenizer_lm.py --models ...`)
 

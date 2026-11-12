@@ -147,7 +147,9 @@ Small-scale tests on a Mac Studio, all in [results/README.md](results/README.md)
   1.5% (chance) without, 3 seeds. With 4 agents, one gathers facts from the other three.
 - **The model builds its own RAG.** On facts that change every step, it finds the right one among 1,024 it has never
   seen: 100% correct with its datastore, 1.5% (chance) without. It learns its own embeddings, queries and reading.
-  The first design never learned; the report says what broke and why.
+  The first design never learned; the report says what broke and why. On real text retrieval is not yet a net win:
+  with a perfect search it would gain 0.040 bits per token on a Wikipedia knowledge task, but the model's own search
+  finds the right article only about 30% of the time.
 - **On real text the board helps:** on the hybrid, swarms beat a matched control by 0.014 bits per byte (0.8%, both seeds; 0.006 on pure TONN), and training as a swarm makes each agent better even with its board cut (0.010).
 - **Tokenizer: 32k.** It wins or ties 49k and 64k on English, Japanese and code at a fixed token budget.
 - **Speed:** the default 0.1B model (2:1 hybrid) trains at the same speed as a same-size Llama (1.01x per token), 1.49x with retrieval on.
@@ -190,8 +192,7 @@ Starting points. Almost everything here runs on a laptop or a free Google Colab 
 - [ ] Key size: 32 vs 64 vs 128 numbers (`small` preset)
 - [ ] (starter) Script that prints what RG retrieved for a prompt
 - [ ] Swap the datastore at inference: can the model use new facts without retraining?
-- [x] First retrieval gain on real text: adding rare-word codes to the keys raises the search's hit rate from 12% to 32% and gives 0.026 bits per token on a Wikipedia knowledge task (results §6; seed 1 running)
-- [ ] Close the rest of the gap to a perfect search (about 35% of the oracle's gain is still missing): better pooling, hard negatives, a bigger encoder
+- [ ] Make retrieval pay off on real text. A perfect search would gain 0.040 bits per token on a Wikipedia knowledge task. Rare-word codes in the keys raise the search's hit rate from 12% to 30%, but the net gain over a no-retrieval model is not yet established (+0.026 and -0.002 on two seeds; results §6). Next: better pooling, hard negatives, a bigger encoder, larger models
 
 ### Architecture (`exealm/model/`)
 - [x] TONN vs Llama with the `small` preset on real tokens, two seeds each: Llama ahead, most of all on code ([results](results/README.md#7-tonn-vs-llama-on-real-tokens-experimentstokenizer_lmpy---models-))

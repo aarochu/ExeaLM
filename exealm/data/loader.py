@@ -93,12 +93,12 @@ class MultiShards:
                          bytes_per_token=float(sum(s.meta["bytes_per_token"] * s.meta["n_tokens"] for s in self.sources)
                                                / sizes.sum()))
 
-    def batch(self, B, T, rng, swarm_size=1, policy="random", p_split=0.5):
+    def batch(self, B, T, rng, swarm_size=1, policy="random", p_split=0.5, mask_seams=True):
         g = swarm_size if (swarm_size > 1 and B % swarm_size == 0) else 1
         xs, ys, ds = [], [], []
         for _ in range(B // g):
             i = int(rng.choice(len(self.sources), p=self.p))
-            x, y, d = self.sources[i].batch(g, T, rng, g, policy, p_split)
+            x, y, d = self.sources[i].batch(g, T, rng, g, policy, p_split, mask_seams)
             xs.append(x)
             ys.append(y)
             ds.append(d + int(self.doc_base[i]))

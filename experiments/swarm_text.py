@@ -10,6 +10,9 @@ only difference is the swarm):
           batch diversity, since a split batch holds 4x fewer independent stretches of text
 Every model is scored on the same held-out split swarms, with the board shared and with it cut (swarm_size 1), in bits
 per byte, overall and by the agent's position in the stretch (agent 0 reads the first window, agent 3 the last).
+The loader hides each split swarm's seam targets (agent i's last target is agent i + 1's first byte, which agent i can
+hear through the board; exealm/data/loader.py), in training and in scoring, for every arm. Results in
+results/swarm_text*/ from before that change scored those targets.
 The gain from the board = bits with the board cut - bits with it shared.
 
 python experiments/swarm_text.py --data data/bytes/train --val data/bytes/val --steps 3000 --out results/swarm_text
@@ -41,7 +44,9 @@ def score(model, batches, swarm_size, n_agents, dev):
     tot = torch.zeros(n_agents)
     for x, y in batches:
         logits = model(x.to(dev), MemoryContext(swarm_size=swarm_size))[0].float()
-        nll = torch.nn.functional.cross_entropy(logits.transpose(1, 2), y.to(dev), reduction="none").mean(1).cpu()
+        y = y.to(dev)
+        nll = torch.nn.functional.cross_entropy(logits.transpose(1, 2), y, reduction="none", ignore_index=-100)
+        nll = (nll.sum(1) / (y != -100).sum(1)).cpu()                  # mean over scored targets (seams are hidden)
         tot += nll.view(-1, n_agents).mean(0)
     model.train()
     per = (tot / len(batches) / math.log(2)).tolist()

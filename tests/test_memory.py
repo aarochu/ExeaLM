@@ -157,3 +157,21 @@ def test_lexical_keys_match_chunks_that_share_rare_words():
     ds.refresh(m.encoder, m.emb)
     assert ds.keys.shape[1] == cfg.h + 16
 
+
+def test_swarm_text_scores_only_the_targets_that_count():
+    """experiments/swarm_text.py averages over scored targets, so the hidden seam targets don't count as zero loss."""
+    import math
+    import numpy as np
+    from exealm.data.loader import SyntheticShards
+    from experiments.swarm_text import score
+    torch.manual_seed(0)
+    cfg = get_config("tiny", swarm_size=2)
+    m = ExeaLM(cfg)
+    x, y, _ = SyntheticShards(n_tokens=20_000).batch(4, 24, np.random.default_rng(0), swarm_size=2, policy="split")
+    assert (y[[0, 2], -1] == -100).all()
+    got = score(m, [(x, y)], 2, 2, torch.device("cpu"))["per_agent"]
+    with torch.no_grad():
+        nll = torch.nn.functional.cross_entropy(m.eval()(x, MemoryContext(swarm_size=2))[0].transpose(1, 2), y,
+                                                reduction="none", ignore_index=-100)
+    rows = nll.sum(1) / (y != -100).sum(1) / math.log(2)
+    assert np.allclose(got, [float(rows[[0, 2]].mean()), float(rows[[1, 3]].mean())], atol=1e-4)

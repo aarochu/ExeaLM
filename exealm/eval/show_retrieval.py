@@ -30,8 +30,8 @@ from ..model import ExeaLM
 @torch.no_grad()
 def retrievals(model, ids, mem, top=None):
     """Run the model on ids (1, T) and return what every RG slot retrieved, as a list of dicts:
-    chunk (the chunk of the prompt being read), layer, slot, and hits: [(datastore index, weight)] sorted by weight,
-    at most `top` per slot."""
+    chunk (the chunk of the prompt being read), layer (the model's layer number; in a hybrid only the TONN layers have
+    RG slots), slot, and hits: [(datastore index, weight)] sorted by weight, at most `top` per slot."""
     was = model.training
     model.eval()
     rgs = [lay.rg for lay in model.layers]
@@ -44,6 +44,7 @@ def retrievals(model, ids, mem, top=None):
             rg.record = False
         model.train(was)
     out = []
+    layer_no = [i for i in range(model.cfg.n_layers) if i not in model.cfg.attn_layers]   # TONN layer -> model layer
     for i, lay in enumerate(model.layers):
         rec = lay.rg.last
         if rec is None:
@@ -54,7 +55,7 @@ def retrievals(model, ids, mem, top=None):
             for j, k in enumerate(slots):
                 idx, w, ok = rec["idx"][0, c, j], rec["weight"][0, c, j], rec["valid"][0, c, j]
                 hits = sorted(((int(a), float(b)) for a, b, v in zip(idx, w, ok) if v), key=lambda h: -h[1])
-                out.append(dict(chunk=c + 1, layer=i, slot=k, hits=hits[:top] if top else hits))
+                out.append(dict(chunk=c + 1, layer=layer_no[i], slot=k, hits=hits[:top] if top else hits))
     return out
 
 
@@ -99,6 +100,8 @@ def main(argv=None):
     else:
         model = ExeaLM(get_config(a.preset, vocab_size=int(data.meta["vocab_size"])))
     cfg = model.cfg
+    if a.ckpt and model.encoder is not None:
+        model.encoder.idf_ready = True                     # keep the checkpoint's own word rarities (rag_lexical)
     ds = Datastore.from_shards(data, a.datastore_chunks, cfg.rag_chunk_len, seed=a.seed + 1)
     ds.refresh(model.encoder, model.emb)
 

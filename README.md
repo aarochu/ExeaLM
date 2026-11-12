@@ -190,7 +190,8 @@ Starting points. Almost everything here runs on a laptop or a free Google Colab 
 - [ ] Key size: 32 vs 64 vs 128 numbers (`small` preset)
 - [ ] (starter) Script that prints what RG retrieved for a prompt
 - [ ] Swap the datastore at inference: can the model use new facts without retraining?
-- [ ] Make retrieval pay off on real text. With a perfect search it helps on a Wikipedia knowledge task; the model's own search finds the right article only about 12% of the time (results §6). Improve the search: key size, pooling, training signal
+- [x] First retrieval gain on real text: adding rare-word codes to the keys raises the search's hit rate from 12% to 32% and gives 0.026 bits per token on a Wikipedia knowledge task (results §6; seed 1 running)
+- [ ] Close the rest of the gap to a perfect search (about 35% of the oracle's gain is still missing): better pooling, hard negatives, a bigger encoder
 
 ### Architecture (`exealm/model/`)
 - [x] TONN vs Llama with the `small` preset on real tokens, two seeds each: Llama ahead, most of all on code ([results](results/README.md#7-tonn-vs-llama-on-real-tokens-experimentstokenizer_lmpy---models-))

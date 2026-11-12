@@ -296,8 +296,25 @@ Bits per token on held-out articles:
   retrieval gives nothing.
 - The read works; the model's own search does not yet.
 
-Next: larger retrieval keys (128 numbers instead of one circuit's 32, `rag_key_dim`), with and without a strong
-neighbour loss.
+**Fixing the search with rare words** (`rag_lexical`): retrieval keys get a second part, a fixed random code for
+every token in the chunk weighted by how rare the token is (idf from the datastore). Chunks that share rare words,
+like names, places and terms, get similar keys from the first step; the learned part is trained as before.
+
+| Run (step 3,000, seed 0) | Library attached | Library removed | Search finds the right article (top 4) |
+|---|---|---|---|
+| No retrieval | | 5.282 | |
+| Learned keys, 128 numbers + neighbour loss | 5.282 | 5.282 | 13.2% |
+| Learned keys, 128 numbers + strong neighbour loss (1.0) | 5.413 | 5.413 | 12.9% |
+| **Learned (128) + rare-word (128) keys** | **5.256** | 5.260 | **31.6%** |
+| Oracle search | 5.242 | 5.309 | (perfect) |
+
+- **The first retrieval gain on real text.** The rare-word search finds the right article 32% of the time instead of
+  12%, and the model is 0.026 bits per token better than the no-retrieval model: about 65% of the oracle's gain.
+- Larger learned keys alone did not help.
+- A strong neighbour loss hurt the language model, because the search encoder shares the token embeddings.
+- Most of the gain shows up even with the library removed at test time: training with a search that finds related
+  text seems to make the model better.
+- One seed, so the comparison with the no-retrieval model needs care. Seed 1 of both is running.
 
 ## 7. TONN vs Llama on real tokens (`experiments/tokenizer_lm.py --models ...`)
 

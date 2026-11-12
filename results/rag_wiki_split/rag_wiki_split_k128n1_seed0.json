@@ -1,0 +1,68 @@
+{
+ "args": {
+  "wiki": "data/tokpack/bpe32k/store_wiki",
+  "arms": "rag",
+  "chunk": 64,
+  "min_tokens": 1024,
+  "eval_frac": 0.1,
+  "refresh_every": 500,
+  "steps": 3000,
+  "batch": 32,
+  "seq": 256,
+  "lr": 0.002,
+  "eval_every": 1000,
+  "eval_batches": 16,
+  "seed": 0,
+  "neighbour": 1.0,
+  "tag": "k128n1",
+  "oracle": 0,
+  "key_dim": 128,
+  "device": "mps",
+  "out": "results/rag_wiki_split"
+ },
+ "device": "mps",
+ "runs": [
+  {
+   "arm": "rag",
+   "params": 13330136,
+   "final": {
+    "arm": "rag",
+    "step": 3000,
+    "secs": 481.4,
+    "attached": 5.4128,
+    "removed": 5.4126,
+    "same_article_hits": 0.1294,
+    "retrieval_gain": -0.0002
+   },
+   "curve": [
+    {
+     "arm": "rag",
+     "step": 1000,
+     "secs": 159.6,
+     "attached": 6.5653,
+     "removed": 6.5642,
+     "same_article_hits": 0.0884,
+     "retrieval_gain": -0.0011
+    },
+    {
+     "arm": "rag",
+     "step": 2000,
+     "secs": 320.6,
+     "attached": 5.9108,
+     "removed": 5.9086,
+     "same_article_hits": 0.0952,
+     "retrieval_gain": -0.0022
+    },
+    {
+     "arm": "rag",
+     "step": 3000,
+     "secs": 481.4,
+     "attached": 5.4128,
+     "removed": 5.4126,
+     "same_article_hits": 0.1294,
+     "retrieval_gain": -0.0002
+    }
+   ]
+  }
+ ]
+}

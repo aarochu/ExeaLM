@@ -22,11 +22,11 @@ transformer on our hardware, and retrieval adds about half again, so plan for ab
 (results/README.md, section 5).
 
 What exists: `exealm/train/pretrain.py` runs this loop on one device, with the search, retrieval, swarms, WSD,
-evaluation and checkpoints.
+evaluation and checkpoints. A run can stop and pick up again exactly where it left off (`--save_every`, `--stop_at`,
+`--resume auto`), which is what lets a long run span several Colab sessions or preemptible GPU jobs.
 
 What's missing:
 - multi-GPU (DDP, then FSDP)
-- resuming from a checkpoint
 - a streaming data loader for the full mix with per-source weights
 - context extension
 - `torch.compile`

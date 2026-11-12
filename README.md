@@ -240,7 +240,7 @@ Starting points. Almost everything here runs on a laptop or a free Google Colab 
 
 ### Training (`exealm/train/pretrain.py`)
 - [ ] Multi-GPU: DDP, then FSDP (DDP is testable on a CPU with two processes)
-- [ ] Exact resume from checkpoints
+- [x] Exact resume from checkpoints (`--save_every`, `--stop_at`, `--resume auto`)
 - [ ] Weights & Biases logging
 - [ ] Context extension near the end of training
 - [ ] Optimizer: Muon vs AdamW (`small` preset)

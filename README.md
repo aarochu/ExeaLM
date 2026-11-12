@@ -218,7 +218,7 @@ Starting points. Almost everything here runs on a laptop or a free Google Colab 
 - [ ] Recurrent state cache, so generating a token doesn't re-read the whole context
 - [ ] `torch.compile` support
 - [x] Training-speed benchmark: TONN 1.5x a same-size Llama per token, 2.7x with retrieval on ([results](results/README.md#5-speed-of-the-real-model-experimentsspeedpy), `experiments/speed.py`)
-- [ ] (starter) Add generation speed to `experiments/speed.py`
+- [x] (starter) Generation speed: `python -m exealm.eval.speed` times training and generation tokens per second against a same-size Llama
 - [ ] (GPU) Run the tests and a short training run on an MI300X and report what breaks
 
 ### Data ([DATA.md](DATA.md), `exealm/data/`)
